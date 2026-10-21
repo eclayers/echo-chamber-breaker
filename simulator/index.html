@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo Chamber Breaker — MCP Intellectual Honesty Coach</title>
+  <meta name="description" content="Anti-sycophant layer for Alexa+ and MCP clients: forces high-quality intellectual friction, steelmans opposing views, and measures intellectual honesty over time.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/simulator/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header / Navbar -->
+    <header class="top-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <span class="prism-glyph">⚡</span>
+        </div>
+        <div>
+          <div class="brand-title">ECHO CHAMBER BREAKER</div>
+          <div class="brand-subtitle">The Anti-Sycophant Layer • Model Context Protocol Server</div>
+        </div>
+      </div>
+      
+      <div class="header-status">
+        <div class="status-badge" id="mcpConnectionBadge">
+          <span class="status-dot online"></span>
+          <span id="mcpStatusText">MCP: Connected (Streamable HTTP)</span>
+        </div>
+        <div class="mode-pill" id="reasoningModePill">MODE: LOCAL COGNITIVE MOCK</div>
+        <button id="toggleTtsBtn" class="icon-btn" title="Toggle Voice / Text-to-Speech">
+          <span id="ttsIcon">🔊 Voice: On</span>
+        </button>
+        <button id="viewBenchmarkBtn" class="pill-btn secondary">
+          <span>📊 ML Calibration</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <main class="main-layout">
+      <!-- Left Column: Sparring & Stance Arena -->
+      <section class="arena-column">
+        <!-- Quick Presets -->
+        <div class="preset-strip">
+          <span class="preset-label">Test Convictions:</span>
+          <button class="preset-chip" data-text="Remote work is destroying company culture and productivity, and everyone must return to the office.">
+            🏢 Remote Work
+          </button>
+          <button class="preset-chip" data-text="Frontier AI development should be paused immediately by global treaties because extinction risks outweigh economic upside.">
+            🤖 Pause Frontier AI
+          </button>
+          <button class="preset-chip" data-text="Nuclear energy is too expensive, slow to build, and inherently dangerous to play any serious role in decarbonization.">
+            ⚛️ Nuclear Energy
+          </button>
+          <button class="preset-chip" data-text="Dynamic languages are completely unacceptable for enterprise software; static typing is strictly superior.">
+            💻 Static Typing
+          </button>
+        </div>
+
+        <!-- Input Statement Card -->
+        <div class="card glass-card input-card">
+          <div class="card-header">
+            <h2 class="card-title">1. State Your Strong Conviction</h2>
+            <div class="card-badge">STANCE INPUT</div>
+          </div>
+          <div class="input-container">
+            <textarea id="statementInput" placeholder="Speak or type a strong opinion, moral judgment, or certainty... (e.g. 'Offices are completely obsolete and companies forcing hybrid schedules are run by micromanagers.')" rows="3"></textarea>
+            <div class="input-actions">
+              <button id="voiceInputBtn" class="icon-btn voice-mic-btn" title="Speak opinion via microphone">
+                <span id="micIcon">🎙️ Voice Input</span>
+              </button>
+              <div class="action-buttons-group">
+                <button id="analyzeStanceBtn" class="action-btn secondary">
+                  <span>Analyze Stance</span>
+                </button>
+                <button id="steelmanBtn" class="action-btn primary">
+                  <span>⚡ Steelman Opposing View</span>
+                </button>
+                <button id="startDebateBtn" class="action-btn highlight">
+                  <span>⚔️ Multi-Turn Debate</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stance Analysis Result Card -->
+        <div class="card glass-card" id="stanceCard" style="display: none;">
+          <div class="card-header">
+            <h2 class="card-title">Stance & Cognitive Certainty</h2>
+            <div class="meta-tag" id="stanceTopicTag">Topic</div>
+          </div>
+          <div class="stance-metrics-grid">
+            <div class="metric-box">
+              <div class="metric-label">Polarity</div>
+              <div class="metric-value badge-polarity" id="stancePolarity">STRONG_AGREE</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Conviction / Confidence</div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="confidenceBar" style="width: 88%;"></div>
+              </div>
+              <div class="metric-subtext" id="confidenceText">88% Certainty</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Emotional Charge</div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill warning" id="emotionalBar" style="width: 65%;"></div>
+              </div>
+              <div class="metric-subtext" id="emotionalText">65% Affect</div>
+            </div>
+          </div>
+
+          <div class="bias-section">
+            <div class="section-subtitle">Cognitive Blind Spots Identified:</div>
+            <ul class="blindspot-list" id="blindSpotsList">
+              <!-- populated dynamically -->
+            </ul>
+          </div>
+
+          <div class="assumption-callout" id="coreAssumptionBox">
+            <span class="callout-icon">🔍</span>
+            <span id="coreAssumptionText">Core assumption will appear here.</span>
+          </div>
+        </div>
+
+        <!-- Steelman Argument Card -->
+        <div class="card glass-card steelman-card" id="steelmanCard" style="display: none;">
+          <div class="card-header">
+            <div class="steelman-badge">
+              <span class="sparkle">✨</span> STEELMANNED OPPOSING THESIS
+            </div>
+            <div class="voice-badge">
+              <span>🔊 Spoken Summary (&lt; 40 words)</span>
+            </div>
+          </div>
+
+          <!-- Voice ready say bubble -->
+          <div class="spoken-bubble" id="spokenSayBubble">
+            <div class="bubble-speaker">ALEXA+ / VOICE CHANNEL:</div>
+            <div class="bubble-text" id="spokenSayText">...</div>
+          </div>
+
+          <!-- Structured opposing thesis -->
+          <div class="thesis-box">
+            <div class="thesis-title">Core Counter-Thesis</div>
+            <div class="thesis-content" id="opposingThesisText">...</div>
+          </div>
+
+          <!-- Core premises -->
+          <div class="premises-grid" id="premisesGrid">
+            <!-- populated dynamically -->
+          </div>
+
+          <!-- Epistemic Question -->
+          <div class="epistemic-box">
+            <div class="epistemic-icon">❓</div>
+            <div class="epistemic-content">
+              <div class="epistemic-title">Epistemic Inquiry:</div>
+              <div class="epistemic-question" id="epistemicQuestionText">...</div>
+            </div>
+          </div>
+
+          <!-- Response & Engagement Action Section -->
+          <div class="engagement-action-area">
+            <div class="section-subtitle">How will you respond to this friction?</div>
+            <textarea id="engagementReplyInput" placeholder="Grapple directly with the counter-premise, acknowledge valid points, or articulate your counter-thesis..." rows="2"></textarea>
+            
+            <div class="engagement-btn-row">
+              <button id="dismissChallengeBtn" class="engagement-btn dismiss-btn" title="Dismiss without addressing">
+                <span>✕ Dismiss (-3.0 pts)</span>
+              </button>
+              <button id="concedePointBtn" class="engagement-btn concede-btn" title="Acknowledge valid points">
+                <span>🤝 Concede Valid Point (+8.5 pts)</span>
+              </button>
+              <button id="submitEngagementBtn" class="engagement-btn submit-btn" title="Grapple with substantive reasoning">
+                <span>💬 Submit Counter-Rebuttal (+4.5 pts)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement Feedback Toast / Card -->
+        <div class="card glass-card feedback-card" id="feedbackCard" style="display: none;">
+          <div class="feedback-header">
+            <span class="feedback-badge" id="feedbackQualityBadge">HIGH RATIONALITY</span>
+            <span class="score-delta-badge" id="feedbackDeltaBadge">+4.5</span>
+          </div>
+          <div class="feedback-body" id="feedbackReasonText">Reason will appear here.</div>
+        </div>
+
+        <!-- Multi-Turn Debate Arena Card -->
+        <div class="card glass-card debate-card" id="debateCard" style="display: none;">
+          <div class="card-header">
+            <h2 class="card-title">⚔️ Multi-Turn Dialectical Sparring</h2>
+            <div class="meta-tag" id="debateSessionTag">Session: Active</div>
+          </div>
+          <div class="debate-stream" id="debateTurnsStream">
+            <!-- Turns populated dynamically -->
+          </div>
+          <div class="debate-controls" id="debateControls">
+            <textarea id="debateReplyInput" placeholder="Enter your counter-turn in this debate..." rows="2"></textarea>
+            <div class="debate-btn-row">
+              <button id="sendDebateTurnBtn" class="action-btn primary">
+                <span>💬 Send Counter-Turn</span>
+              </button>
+              <button id="concludeDebateBtn" class="action-btn secondary">
+                <span>🏁 Conclude Debate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Intellectual Honesty Dashboard & Wire Trace -->
+      <section class="dashboard-column">
+        <!-- Honesty Score Card -->
+        <div class="card glass-card honesty-score-card">
+          <div class="card-header">
+            <h2 class="card-title">Intellectual Honesty Ledger</h2>
+            <div style="display: flex; gap: 8px;">
+              <button id="exportReportBtn" class="pill-btn secondary" title="Copy Certified Report Card">
+                <span>📋 Export Card</span>
+              </button>
+              <button id="proactiveChallengeBtn" class="pill-btn highlight">
+                <span>⚡ Challenge Me</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="score-overview">
+            <div class="score-radial">
+              <div class="score-number" id="honestyScoreValue">50.0</div>
+              <div class="score-label" id="honestyStatusLabel">BALANCED</div>
+            </div>
+            <div class="score-stats-grid">
+              <div class="stat-item">
+                <div class="stat-number" id="totalChallengesCount">0</div>
+                <div class="stat-name">Challenges</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number" id="engagementRateValue">0%</div>
+                <div class="stat-name">Engaged</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number" id="concessionCountValue">0</div>
+                <div class="stat-name">Concessions</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radar Chart Visualization -->
+          <div class="radar-container">
+            <div class="chart-title">Epistemic Calibration Radar</div>
+            <svg id="radarSvg" viewBox="0 0 300 240" class="radar-svg">
+              <!-- Rendered via JS -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- Live MCP Protocol Wire Trace Panel -->
+        <div class="card glass-card wire-trace-card">
+          <div class="trace-header">
+            <div class="trace-title">
+              <span class="dot-pulse"></span>
+              <span>LIVE MCP PROTOCOL TRACE</span>
+            </div>
+            <div class="trace-actions">
+              <span class="trace-badge">JSON-RPC 2.0</span>
+              <button id="clearTraceBtn" class="small-text-btn">Clear</button>
+            </div>
+          </div>
+          <div class="trace-console" id="wireTraceConsole">
+            <div class="trace-entry system">
+              <span class="trace-timestamp">[READY]</span>
+              <span class="trace-method">System initialized. Ready to execute Streamable HTTP MCP calls.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Ledger Events Stream -->
+        <div class="card glass-card ledger-events-card">
+          <div class="card-header">
+            <h3 class="card-title-sm">Audit Trail (Append-Only Ledger)</h3>
+            <span class="subtle-badge">Tamper-Proof</span>
+          </div>
+          <div class="ledger-stream" id="ledgerEventsStream">
+            <div class="empty-ledger">No ledger events recorded yet.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ML Calibration Modal -->
+    <div class="modal-overlay" id="benchmarkModal" style="display: none;">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h2>Machine Learning & Epistemic Calibration Benchmark</h2>
+          <button id="closeBenchmarkModalBtn" class="close-modal-btn">✕</button>
+        </div>
+        <div class="modal-body" id="benchmarkModalBody">
+          <div class="loading-state">Running benchmark evaluation on dataset...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/simulator/app.js"></script>
+</body>
+</html>

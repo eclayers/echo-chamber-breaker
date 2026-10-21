@@ -1,0 +1,46 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Echo Chamber Breaker",
+          "summary": "The anti-sycophant intellectual honesty coach for Alexa+",
+          "description": "Echo Chamber Breaker challenges your strong opinions with high-quality steelmanned opposing arguments, measures whether you engage honestly, and tracks your private Intellectual Honesty Score.",
+          "examplePhrases": [
+            "Alexa, open Echo Chamber Breaker",
+            "Alexa, ask Echo Chamber Breaker to challenge my opinion on remote work",
+            "Alexa, ask Echo Chamber Breaker what is my honesty score"
+          ],
+          "keywords": [
+            "mcp",
+            "intellectual honesty",
+            "critical thinking",
+            "steelman",
+            "debate",
+            "sparring partner"
+          ]
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Open the skill and state an opinion, or ask for your honesty score.",
+      "category": "EDUCATION_AND_REFERENCE",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "https://your-domain.com/alexa"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0",
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "isChildDirected": false,
+      "usesPersonalInfo": false
+    }
+  }
+}

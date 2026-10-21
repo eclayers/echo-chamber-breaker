@@ -1,0 +1,93 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "echo chamber breaker",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": ["cancel", "nevermind"]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": ["help", "what can you do", "how does this work"]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": ["stop", "goodbye", "exit"]
+        },
+        {
+          "name": "SteelmanIntent",
+          "slots": [
+            {
+              "name": "statement",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "challenge my opinion on {statement}",
+            "steelman this {statement}",
+            "give me the counter argument for {statement}",
+            "what is the opposing view on {statement}",
+            "argue against {statement}"
+          ]
+        },
+        {
+          "name": "AnalyzeStanceIntent",
+          "slots": [
+            {
+              "name": "statement",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "analyze my stance on {statement}",
+            "check my bias on {statement}",
+            "find blind spots in {statement}"
+          ]
+        },
+        {
+          "name": "ConcedeIntent",
+          "samples": [
+            "I concede",
+            "you have a good point",
+            "that is a fair point",
+            "I agree with that counter point",
+            "valid point"
+          ]
+        },
+        {
+          "name": "RebuttalIntent",
+          "slots": [
+            {
+              "name": "rebuttal",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "here is my counter argument {rebuttal}",
+            "I disagree because {rebuttal}",
+            "my rebuttal is {rebuttal}"
+          ]
+        },
+        {
+          "name": "HonestyReportIntent",
+          "samples": [
+            "what is my honesty score",
+            "give me my honesty report",
+            "how intellectually honest am I",
+            "check my score"
+          ]
+        },
+        {
+          "name": "ChallengeMeIntent",
+          "samples": [
+            "challenge me",
+            "give me some intellectual friction",
+            "test my thinking",
+            "surprise me with a challenge"
+          ]
+        }
+      ]
+    }
+  }
+}

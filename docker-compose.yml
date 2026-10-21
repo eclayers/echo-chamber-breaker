@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  echo-chamber-breaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echo-chamber-breaker-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - STORAGE_PROVIDER=local
+      - STORAGE_FILE_PATH=/app/data/honesty_ledger.json
+      # AWS Bedrock credentials (optional: defaults to local cognitive mock if unset)
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-mock}
+    volumes:
+      # Persist the Intellectual Honesty Ledger across container restarts
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
