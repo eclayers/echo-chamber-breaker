@@ -17,7 +17,7 @@ export interface RadarMetrics {
 export interface HonestyReportPayload {
   userId: string;
   currentScore: number;
-  scoreStatus: "EXEMPLARY" | "BALANCED" | "DEVELOPING" | "CONFIRMATION_TRAPPED";
+  scoreStatus: "OPEN_MINDED" | "CALIBRATING" | "CONFIRMATION_TRAPPED" | "EXEMPLARY" | "BALANCED" | "DEVELOPING";
   totalChallenges: number;
   engagedCount: number;
   dismissedCount: number;
@@ -186,11 +186,10 @@ export class HonestyEngine {
     const profile = await sessionStore.getProfile(userId);
     const events = await sessionStore.getEvents(userId, 15);
 
-    let scoreStatus: HonestyReportPayload["scoreStatus"] = "BALANCED";
-    if (profile.currentScore >= 75) scoreStatus = "EXEMPLARY";
-    else if (profile.currentScore >= 55) scoreStatus = "BALANCED";
-    else if (profile.currentScore >= 40) scoreStatus = "DEVELOPING";
-    else scoreStatus = "CONFIRMATION_TRAPPED";
+    let scoreStatus: HonestyReportPayload["scoreStatus"] = "CALIBRATING";
+    if (profile.currentScore > 65) scoreStatus = "OPEN_MINDED";
+    else if (profile.currentScore < 35) scoreStatus = "CONFIRMATION_TRAPPED";
+    else scoreStatus = "CALIBRATING";
 
     // Compute Radar Dimensions
     const opennessToEvidence = Math.min(

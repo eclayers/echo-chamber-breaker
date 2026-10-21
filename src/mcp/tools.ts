@@ -50,7 +50,7 @@ export function registerTools(server: McpServer): void {
     },
     async ({ statement, userId }) => {
       const stance = await cognitiveAdapter.analyzeStance(statement);
-      const say = `Detected high conviction on ${stance.detectedTopic}. I have identified three crucial blind spots in this position.`;
+      const say = stance.say || `Detected high conviction on ${stance.detectedTopic}. I have identified three crucial blind spots in this position.`;
       return formatToolResponse(say, stance, cognitiveAdapter.getMode());
     }
   );
@@ -65,6 +65,18 @@ export function registerTools(server: McpServer): void {
     },
     async ({ statement, userId }) => {
       const stance = await cognitiveAdapter.analyzeStance(statement);
+      if (!stance.is_stance) {
+        return formatToolResponse(
+          stance.say || "Please articulate an opinion or conviction you would like challenged.",
+          {
+            is_stance: false,
+            say: stance.say,
+            originalClaim: statement,
+            reason: stance.coreAssumption || stance.calibrationNotes,
+          },
+          cognitiveAdapter.getMode()
+        );
+      }
       const steelmanRes = await cognitiveAdapter.generateSteelman(statement, stance);
       return formatToolResponse(steelmanRes.say, steelmanRes, cognitiveAdapter.getMode());
     }
@@ -116,8 +128,19 @@ export function registerTools(server: McpServer): void {
       statement: z.string().min(5).describe("Initial opinion or thesis to debate."),
     },
     async ({ userId, statement }) => {
-      const profile = await sessionStore.getProfile(userId);
       const stance = await cognitiveAdapter.analyzeStance(statement);
+      if (!stance.is_stance) {
+        return formatToolResponse(
+          stance.say || "Cannot start a debate on a non-conviction statement.",
+          {
+            is_stance: false,
+            error: "NON_STANCE_INPUT",
+            say: stance.say,
+          },
+          cognitiveAdapter.getMode()
+        );
+      }
+      const profile = await sessionStore.getProfile(userId);
       const initialSteelman = await cognitiveAdapter.generateSteelman(statement, stance);
 
       const sessionId = `deb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

@@ -8,6 +8,7 @@ import type {
   EngagementAssessment,
   ProactiveChallenge,
   HonestyProfile,
+  InputClassification,
 } from "../types/index.js";
 
 export interface CognitiveAdapter {
@@ -16,6 +17,202 @@ export interface CognitiveAdapter {
   evaluateEngagement(userReply: string, steelman: SteelmanResponse): Promise<EngagementAssessment>;
   generateProactiveChallenge(history: HonestyProfile): Promise<ProactiveChallenge>;
   getMode(): "mock" | "bedrock";
+}
+
+/**
+ * Normative Stance Gate Classification (Logic Spec v1.0 Section 2)
+ * Prevents inventing convictions on greetings, questions, or neutral statements.
+ */
+export function classifyInput(statement: string): {
+  is_stance: boolean;
+  category: InputClassification;
+  reason: string;
+  say: string;
+} {
+  const trimmed = (statement || "").trim();
+  const lower = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+
+  // 1. Empty or whitespace
+  if (words.length === 0) {
+    return {
+      is_stance: false,
+      category: "INCOMPLETE",
+      reason: "No statement entered. Please articulate an opinion or conviction you would like challenged.",
+      say: "Please articulate an opinion or conviction you hold with high certainty, and I will present the opposing case.",
+    };
+  }
+
+  // 2. Meta / System requests
+  if (
+    lower.includes("what is my score") ||
+    lower.includes("show my score") ||
+    lower.includes("show history") ||
+    lower.includes("challenge me") ||
+    lower.includes("show ledger") ||
+    lower.includes("export certificate")
+  ) {
+    return {
+      is_stance: false,
+      category: "META",
+      reason: "System command or metadata query routed to system tools.",
+      say: "Routing to your honesty report. You can review your score, calibration radar, and append-only ledger.",
+    };
+  }
+
+  // 3. Greetings / Social Small Talk (Axiom A1: No invented conviction)
+  const greetingExact = new Set([
+    "hi",
+    "hello",
+    "hey",
+    "hi alexa",
+    "hello alexa",
+    "hey alexa",
+    "good morning",
+    "good afternoon",
+    "good evening",
+    "thanks",
+    "thank you",
+    "how are you",
+    "how do you do",
+    "who are you",
+    "what's up",
+    "whats up",
+  ]);
+  const cleanPunct = lower.replace(/[!?,.]/g, "").trim();
+  const isGreetingOnly =
+    words.length <= 4 &&
+    (greetingExact.has(cleanPunct) ||
+      [...greetingExact].some(
+        (g) => cleanPunct === g || cleanPunct.startsWith(g + " ") || cleanPunct.endsWith(" " + g)
+      ));
+
+  if (isGreetingOnly) {
+    return {
+      is_stance: false,
+      category: "GREETING",
+      reason: "Social greeting or conversational pleasantry without an asserted belief.",
+      say: "Welcome to Echo Chamber Breaker. State a strong opinion or conviction, and I will steelman the opposing case to test your thinking.",
+    };
+  }
+
+  // 4. Questions (Pure interrogatives seeking information, not asserting a view)
+  const isQuestion =
+    (lower.startsWith("what is") ||
+      lower.startsWith("what are") ||
+      lower.startsWith("how does") ||
+      lower.startsWith("how do") ||
+      lower.startsWith("why does") ||
+      lower.startsWith("why is") ||
+      lower.startsWith("can you explain") ||
+      lower.startsWith("tell me about")) &&
+    trimmed.endsWith("?") &&
+    !lower.includes("should") &&
+    !lower.includes("must") &&
+    !lower.includes("worst") &&
+    !lower.includes("best") &&
+    !lower.includes("destroy");
+
+  if (isQuestion) {
+    return {
+      is_stance: false,
+      category: "QUESTION",
+      reason: "Informational question seeking explanation rather than asserting a conviction.",
+      say: "That is an exploratory question. State your personal conviction or judgment on this topic, and I will present the strongest opposing view.",
+    };
+  }
+
+  // 5. Incomplete fragments (under 4 tokens without evaluative/moral weight)
+  const evaluativeWords = [
+    "should",
+    "must",
+    "always",
+    "never",
+    "worst",
+    "best",
+    "right",
+    "wrong",
+    "destroy",
+    "obsolete",
+    "ruining",
+    "superior",
+    "inferior",
+    "evil",
+    "good",
+    "bad",
+    "believe",
+    "feel",
+    "think",
+    "convince",
+    "hate",
+    "love",
+    "fail",
+    "threat",
+    "danger",
+    "pause",
+    "outweigh",
+  ];
+  const hasEvaluative = evaluativeWords.some((w) => lower.includes(w));
+
+  if (words.length < 4 && !hasEvaluative) {
+    return {
+      is_stance: false,
+      category: "INCOMPLETE",
+      reason: "Fragment too short or lacking evaluative content to identify a claim.",
+      say: "Could you articulate that conviction in a complete statement? That will allow me to generate a rigorous counter-argument.",
+    };
+  }
+
+  // 6. Neutral / Descriptive facts without evaluative stance
+  const neutralFactualStarts = [
+    "the capital of",
+    "water boils at",
+    "python is a programming language",
+    "today is",
+    "the current year is",
+  ];
+  if (neutralFactualStarts.some((p) => lower.startsWith(p)) && !hasEvaluative) {
+    return {
+      is_stance: false,
+      category: "NEUTRAL",
+      reason: "Factual description without clear evaluative stance.",
+      say: "That is a descriptive statement. Do you have a personal conviction or policy opinion on this topic you would like to test?",
+    };
+  }
+
+  // Positive classification: STANCE / CONVICTION
+  return {
+    is_stance: true,
+    category: "STANCE",
+    reason: "Clear evaluative conviction or policy stance detected.",
+    say: "",
+  };
+}
+
+function buildSteelmanResponse(
+  say: string,
+  originalClaim: string,
+  opposingThesis: string,
+  coreArguments: { premise: string; evidenceOrMechanism: string }[],
+  concessionPoints: string[],
+  epistemicQuestion: string,
+  challengeId?: string
+): SteelmanResponse {
+  const chalId = challengeId || `chal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return {
+    is_stance: true,
+    say,
+    originalClaim,
+    opposingThesis,
+    foundational_counter_thesis: opposingThesis,
+    coreArguments,
+    core_structural_premises: coreArguments.map((a) => a.premise),
+    concessionPoints,
+    epistemicQuestion,
+    socratic_inquiry: epistemicQuestion,
+    challengeId: chalId,
+    challenge_id: chalId,
+  };
 }
 
 /**
@@ -28,6 +225,37 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
   }
 
   async analyzeStance(statement: string): Promise<StanceAnalysis> {
+    const gate = classifyInput(statement);
+
+    // Stance Gate: If input is not a stance, do NOT invent a conviction (Axioms A1 & A2)
+    if (!gate.is_stance) {
+      return {
+        is_stance: false,
+        category: gate.category,
+        originalStatement: statement,
+        detectedTopic:
+          gate.category === "GREETING"
+            ? "Social Greeting"
+            : gate.category === "QUESTION"
+            ? "Inquiry"
+            : "Non-Stance Input",
+        claim: statement.trim(),
+        polarity: "NEUTRAL",
+        confidence: 0,
+        conviction_certainty: 0,
+        emotionalCharge: 0,
+        emotional_charge: 0,
+        detectedFallacies: [],
+        blindSpots: [],
+        blind_spots: [],
+        coreAssumption: gate.reason,
+        unexamined_assumption: gate.reason,
+        topic_label: gate.category,
+        calibrationNotes: gate.reason,
+        say: gate.say,
+      };
+    }
+
     const lower = statement.toLowerCase();
 
     let detectedTopic = "General Discourse";
@@ -140,22 +368,49 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       coreAssumption = `Assumes that observed negative attributes of ${subject} represent its complete systemic utility without counterbalancing virtues.`;
     }
 
+    const convictionCertainty = Math.round(confidence * 100);
+    const emotionalChargeVal = Math.round(emotionalCharge * 100);
+    const sayVoice = `Detected high conviction on ${detectedTopic}. I have identified three crucial blind spots in this position.`;
+
     return {
+      is_stance: true,
+      category: "STANCE",
       originalStatement: statement,
       detectedTopic,
       claim: statement.trim(),
       polarity,
       confidence: Number(confidence.toFixed(2)),
+      conviction_certainty: convictionCertainty,
       emotionalCharge: Number(emotionalCharge.toFixed(2)),
+      emotional_charge: emotionalChargeVal,
       detectedFallacies: fallacies.length > 0 ? fallacies : ["CONFIRMATION_BIAS"],
       blindSpots,
+      blind_spots: blindSpots,
       coreAssumption,
+      unexamined_assumption: coreAssumption,
+      topic_label: detectedTopic,
       calibrationNotes: `Calibrated with Bayesian stance prior for "${detectedTopic}".`,
+      say: sayVoice,
     };
   }
 
   async generateSteelman(statement: string, stance?: StanceAnalysis): Promise<SteelmanResponse> {
     const analysis = stance || (await this.analyzeStance(statement));
+    if (!analysis.is_stance) {
+      return {
+        is_stance: false,
+        say: analysis.say || "Please articulate an opinion or conviction you would like challenged.",
+        originalClaim: statement,
+        opposingThesis: "No evaluative conviction detected to steelman.",
+        foundational_counter_thesis: "No evaluative conviction detected to steelman.",
+        coreArguments: [],
+        core_structural_premises: [],
+        concessionPoints: [],
+        epistemicQuestion: "What specific belief or policy conviction do you hold on this subject?",
+        socratic_inquiry: "What specific belief or policy conviction do you hold on this subject?",
+      };
+    }
+
     const lower = statement.toLowerCase();
 
     // 1. South Asian & Religious / Civilizational Heritage
@@ -167,11 +422,11 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       lower.includes("hindu") ||
       lower.includes("subcontinent")
     ) {
-      return {
-        say: "Historically, Islamic and South Asian civilizations pioneered algebra, the zero numeral, medicine, and architecture that form the indispensable foundation of modern global civilization.",
-        originalClaim: statement,
-        opposingThesis: "The civilizational traditions of India, Pakistan, and Islamic culture have produced foundational breakthroughs in science, mathematics, philosophy, and enduring pluralistic heritage that shaped global human progress.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "Historically, Islamic and South Asian civilizations pioneered algebra, the zero numeral, medicine, and architecture that form the indispensable foundation of modern global civilization.",
+        statement,
+        "The civilizational traditions of India, Pakistan, and Islamic culture have produced foundational breakthroughs in science, mathematics, philosophy, and enduring pluralistic heritage that shaped global human progress.",
+        [
           {
             premise: "Scientific & Mathematical Foundations",
             evidenceOrMechanism:
@@ -188,22 +443,21 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "Modern post-colonial borders and 20th-century political conflicts represent recent traumatic nation-building friction, not the inherent character of multi-millennial civilizational heritages.",
           },
         ],
-        concessionPoints: [
+        [
           "Modern geopolitical border militarization and extremist sectarian factions represent real humanitarian tragedies that require urgent resolution.",
           "Historical trauma from the 1947 partition produced enduring societal grievances that continue to inflame public discourse.",
         ],
-        epistemicQuestion:
-          "If these civilizations were fundamentally flawed, how do we explain that the core tools of modern science—including algebra and the numeric zero—derive directly from their intellectual heritage?",
-      };
+        "If these civilizations were fundamentally flawed, how do we explain that the core tools of modern science—including algebra and the numeric zero—derive directly from their intellectual heritage?"
+      );
     }
 
     // 2. Future of Work & Remote Work
     if (lower.includes("remote") && (lower.includes("destroy") || lower.includes("office") || lower.includes("must return") || lower.includes("culture"))) {
-      return {
-        say: "Consider this: asynchronous remote work forces explicit documentation and opens global talent access that rigid physical presence often stifles.",
-        originalClaim: statement,
-        opposingThesis: "Distributed asynchronous operations foster superior written accountability, eliminate geographic talent constraints, and maximize focused deep work.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "Consider this: asynchronous remote work forces explicit documentation and opens global talent access that rigid physical presence often stifles.",
+        statement,
+        "Distributed asynchronous operations foster superior written accountability, eliminate geographic talent constraints, and maximize focused deep work.",
+        [
           {
             premise: "Talent Liquidity",
             evidenceOrMechanism:
@@ -220,22 +474,21 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "Knowledge workers achieve higher state-of-flow durations with asynchronous Slack/PR communication than in noisy open-office layouts.",
           },
         ],
-        concessionPoints: [
+        [
           "In-person collaboration creates faster high-bandwidth emotional alignment during acute crises.",
           "Junior staff without disciplined self-direction can suffer from isolated learning curves.",
         ],
-        epistemicQuestion:
-          "If in-office presence is essential for culture, why do top open-source projects build world-class complex infrastructure without a single shared office?",
-      };
+        "If in-office presence is essential for culture, why do top open-source projects build world-class complex infrastructure without a single shared office?"
+      );
     }
 
     // 3. AI Safety & Treaties
     if (lower.includes("ai") && (lower.includes("pause") || lower.includes("danger") || lower.includes("threat") || lower.includes("treaty") || lower.includes("extinction"))) {
-      return {
-        say: "A unilateral pause risks handing technological and regulatory primacy to authoritarian rivals while stalling breakthroughs in medicine and clean energy.",
-        originalClaim: statement,
-        opposingThesis: "Continuous accelerated development maintains democratic parity and delivers urgent life-saving breakthroughs.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "A unilateral pause risks handing technological and regulatory primacy to authoritarian rivals while stalling breakthroughs in medicine and clean energy.",
+        statement,
+        "Continuous accelerated development maintains democratic parity and delivers urgent life-saving breakthroughs.",
+        [
           {
             premise: "Geopolitical Game Theory",
             evidenceOrMechanism:
@@ -252,21 +505,20 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "Safety paradigms cannot mature in a vacuum; they require empirical stress-testing against real-world production models.",
           },
         ],
-        concessionPoints: [
+        [
           "Frontier safety auditing and red-teaming standards must scale alongside capability gains.",
         ],
-        epistemicQuestion:
-          "How can an international pause treaty be verified when training compute can be distributed across stealth data centers?",
-      };
+        "How can an international pause treaty be verified when training compute can be distributed across stealth data centers?"
+      );
     }
 
     // 4. Nuclear Energy & Decarbonization
     if (lower.includes("nuclear") && (lower.includes("expensive") || lower.includes("dangerous") || lower.includes("slow") || lower.includes("energy"))) {
-      return {
-        say: "Nuclear power provides high-density, carbon-free baseload electricity that works 24/7 without requiring thousands of square miles of battery and mineral mining.",
-        originalClaim: statement,
-        opposingThesis: "Advanced nuclear energy provides high-capacity, weather-independent clean baseload power indispensable for deep industrial decarbonization.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "Nuclear power provides high-density, carbon-free baseload electricity that works 24/7 without requiring thousands of square miles of battery and mineral mining.",
+        statement,
+        "Advanced nuclear energy provides high-capacity, weather-independent clean baseload power indispensable for deep industrial decarbonization.",
+        [
           {
             premise: "Grid Reliability & Capacity Factor",
             evidenceOrMechanism:
@@ -283,22 +535,21 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "Modern Small Modular Reactors (SMRs) feature passive walk-away safety systems that shut down safely without human intervention or external power.",
           },
         ],
-        concessionPoints: [
+        [
           "Historical bespoke reactor builds experienced excessive regulatory overhead and construction cost overruns in Western markets.",
           "Long-term geological spent-fuel repository politics remains an unresolved social challenge in several nations.",
         ],
-        epistemicQuestion:
-          "Can an industrialized global economy achieve 100% net-zero emissions during winter wind-droughts without high-density baseload power like nuclear?",
-      };
+        "Can an industrialized global economy achieve 100% net-zero emissions during winter wind-droughts without high-density baseload power like nuclear?"
+      );
     }
 
     // 5. Software Engineering: Dynamic vs Static
     if (lower.includes("dynamic") || lower.includes("static") || lower.includes("typing") || lower.includes("typescript") || lower.includes("python")) {
-      return {
-        say: "Dynamic languages maximize exploratory agility and developer velocity, powering the global data science renaissance and rapid software innovation.",
-        originalClaim: statement,
-        opposingThesis: "Dynamic typing enables superior prototyping velocity, lower cognitive syntax friction, and flexible runtime meta-programming essential for exploratory engineering.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "Dynamic languages maximize exploratory agility and developer velocity, powering the global data science renaissance and rapid software innovation.",
+        statement,
+        "Dynamic typing enables superior prototyping velocity, lower cognitive syntax friction, and flexible runtime meta-programming essential for exploratory engineering.",
+        [
           {
             premise: "Iteration Velocity",
             evidenceOrMechanism:
@@ -315,21 +566,20 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "Modern gradual typing (Python type hints, TypeScript) allows adding guarantees incrementally without dogmatic upfront cognitive overhead.",
           },
         ],
-        concessionPoints: [
+        [
           "Large-scale enterprise refactors with hundreds of engineers strongly benefit from rigid compile-time boundary contracts.",
         ],
-        epistemicQuestion:
-          "Why do the world's most dominant AI frameworks and exploratory computing tools rely primarily on Python rather than strictly static languages?",
-      };
+        "Why do the world's most dominant AI frameworks and exploratory computing tools rely primarily on Python rather than strictly static languages?"
+      );
     }
 
     // 6. Enterprise Cloud Architecture: Single vs Multi-Cloud
     if (lower.includes("cloud") || lower.includes("multi-cloud") || lower.includes("single-cloud") || lower.includes("single cloud") || lower.includes("aws")) {
-      return {
-        say: "Standardizing on a single primary cloud drastically reduces architectural complexity, maximizes deep service integration, and accelerates delivery.",
-        originalClaim: statement,
-        opposingThesis: "Single-cloud architecture optimizes engineering focus, eliminates cross-provider network latency, and unlocks higher-level managed services.",
-        coreArguments: [
+      return buildSteelmanResponse(
+        "Standardizing on a single primary cloud drastically reduces architectural complexity, maximizes deep service integration, and accelerates delivery.",
+        statement,
+        "Single-cloud architecture optimizes engineering focus, eliminates cross-provider network latency, and unlocks higher-level managed services.",
+        [
           {
             premise: "Cognitive Load Reduction",
             evidenceOrMechanism:
@@ -346,12 +596,11 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
               "The business risk of slow time-to-market due to multi-cloud complexity far exceeds the statistical risk of catastrophic single-provider failure.",
           },
         ],
-        concessionPoints: [
+        [
           "Certain sovereign regulatory environments require geolocalized data hosting across multiple distinct infrastructure providers.",
         ],
-        epistemicQuestion:
-          "Does the cost of building multi-cloud abstraction layers actually exceed the cost of the hypothetical vendor lock-in it seeks to avoid?",
-      };
+        "Does the cost of building multi-cloud abstraction layers actually exceed the cost of the hypothetical vendor lock-in it seeks to avoid?"
+      );
     }
 
     // 7. Dynamic Semantic Entity Extractor for Any Other Custom Statement
@@ -360,11 +609,11 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
     const meaningful = cleanTokens.filter((w) => !stopwords.has(w.toLowerCase()));
     const keySubject = meaningful.slice(0, 3).join(" ") || "this subject";
 
-    return {
-      say: `Examining ${keySubject}: rigorous counter-evidence indicates that the trade-offs you consider negligible are central to systemic resilience.`,
-      originalClaim: statement,
-      opposingThesis: `The foundational mechanisms regarding ${keySubject} are sustained by vital systemic incentives, historical adaptations, and contextual trade-offs.`,
-      coreArguments: [
+    return buildSteelmanResponse(
+      `Examining ${keySubject}: rigorous counter-evidence indicates that the trade-offs you consider negligible are central to systemic resilience.`,
+      statement,
+      `The foundational mechanisms regarding ${keySubject} are sustained by vital systemic incentives, historical adaptations, and contextual trade-offs.`,
+      [
         {
           premise: "Systemic Function & Hidden Utility",
           evidenceOrMechanism:
@@ -381,12 +630,11 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
             `Empirical and historical precedents demonstrate that completely eliminating the mechanisms behind ${keySubject} creates unforeseen replacement pathologies.`,
         },
       ],
-      concessionPoints: [
+      [
         `Your stance correctly highlights tangible friction points, genuine vulnerabilities, and immediate observed costs associated with ${keySubject}.`,
       ],
-      epistemicQuestion:
-        `What specific empirical counter-evidence or historical precedent regarding ${keySubject}, if discovered tomorrow, would lead you to revise your certainty?`,
-    };
+      `What specific empirical counter-evidence or historical precedent regarding ${keySubject}, if discovered tomorrow, would lead you to revise your certainty?`
+    );
   }
 
   async evaluateEngagement(
@@ -584,28 +832,54 @@ class BedrockCognitiveAdapter implements CognitiveAdapter {
   }
 
   async analyzeStance(statement: string): Promise<StanceAnalysis> {
+    const gate = classifyInput(statement);
+    if (!gate.is_stance) {
+      return this.fallback.analyzeStance(statement);
+    }
+
     try {
       const systemPrompt = `You are an expert cognitive psychologist and epistemic calibration analyst.
 Analyze the user's opinion statement. Return pure JSON with this exact schema:
 {
+  "is_stance": true,
   "originalStatement": string,
   "detectedTopic": string,
   "claim": string,
   "polarity": "STRONG_AGREE" | "LEAN_AGREE" | "NEUTRAL" | "LEAN_DISAGREE" | "STRONG_DISAGREE",
   "confidence": number (0.0 to 1.0),
+  "conviction_certainty": number (0 to 100),
   "emotionalCharge": number (0.0 to 1.0),
+  "emotional_charge": number (0 to 100),
   "detectedFallacies": string[],
   "blindSpots": string[],
+  "blind_spots": string[],
   "coreAssumption": string,
-  "calibrationNotes": string
+  "unexamined_assumption": string,
+  "topic_label": string,
+  "calibrationNotes": string,
+  "say": string (MANDATORY: Voice-ready summary <= 40 words)
 }`;
-      return await this.invokeModelJSON<StanceAnalysis>(systemPrompt, statement);
+      const res = await this.invokeModelJSON<StanceAnalysis>(systemPrompt, statement);
+      res.is_stance = true;
+      res.category = "STANCE";
+      if (!res.blind_spots) res.blind_spots = res.blindSpots || [];
+      if (!res.unexamined_assumption) res.unexamined_assumption = res.coreAssumption || "";
+      if (res.conviction_certainty === undefined) res.conviction_certainty = Math.round((res.confidence || 0.8) * 100);
+      if (res.emotional_charge === undefined) res.emotional_charge = Math.round((res.emotionalCharge || 0.5) * 100);
+      if (!res.topic_label) res.topic_label = res.detectedTopic;
+      if (!res.say) res.say = `Detected high conviction on ${res.detectedTopic}. I have identified three crucial blind spots in this position.`;
+      return res;
     } catch {
       return this.fallback.analyzeStance(statement);
     }
   }
 
   async generateSteelman(statement: string, stance?: StanceAnalysis): Promise<SteelmanResponse> {
+    const analysis = stance || (await this.analyzeStance(statement));
+    if (!analysis.is_stance) {
+      return this.fallback.generateSteelman(statement, analysis);
+    }
+
     try {
       const systemPrompt = `You are Echo Chamber Breaker, an elite intellectual sparring partner designed for Amazon Bedrock and Alexa+.
 Your mission is to STEELMAN the opposing case with utmost charitable rigor, especially when encountering extreme, inflammatory, or emotionally charged opinions.
@@ -627,11 +901,18 @@ Return pure JSON matching:
 }`;
       const userMsg = `Original statement: "${statement}". ${stance ? `Stance analysis: ${JSON.stringify(stance)}` : ""}`;
       const res = await this.invokeModelJSON<SteelmanResponse>(systemPrompt, userMsg);
-      // Guarantee voice brevity constraint (< 40 words)
+      // Guarantee voice brevity constraint (<= 40 words)
       const words = res.say.trim().split(/\s+/);
       if (words.length > 40) {
         res.say = words.slice(0, 38).join(" ") + "...";
       }
+      res.is_stance = true;
+      res.foundational_counter_thesis = res.opposingThesis;
+      res.core_structural_premises = (res.coreArguments || []).map((a) => a.premise);
+      res.socratic_inquiry = res.epistemicQuestion;
+      const chalId = res.challengeId || `chal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      res.challengeId = chalId;
+      res.challenge_id = chalId;
       return res;
     } catch {
       return this.fallback.generateSteelman(statement, stance);

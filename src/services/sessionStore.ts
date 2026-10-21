@@ -66,13 +66,22 @@ export class FileStorageProvider implements StorageProvider {
     return this.memoryCache!;
   }
 
+  private writeQueue: Promise<void> = Promise.resolve();
+
   private async flushToFile(): Promise<void> {
-    if (!this.memoryCache) return;
-    const dir = path.dirname(this.filePath);
-    await fs.mkdir(dir, { recursive: true });
-    const tempPath = `${this.filePath}.tmp.${Date.now()}`;
-    await fs.writeFile(tempPath, JSON.stringify(this.memoryCache, null, 2), "utf-8");
-    await fs.rename(tempPath, this.filePath);
+    this.writeQueue = this.writeQueue.then(async () => {
+      if (!this.memoryCache) return;
+      const dir = path.dirname(this.filePath);
+      await fs.mkdir(dir, { recursive: true });
+      const content = JSON.stringify(this.memoryCache, null, 2);
+      try {
+        await fs.writeFile(this.filePath, content, "utf-8");
+      } catch (err) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await fs.writeFile(this.filePath, content, "utf-8");
+      }
+    });
+    return this.writeQueue;
   }
 
   async getProfile(userId: string): Promise<HonestyProfile> {

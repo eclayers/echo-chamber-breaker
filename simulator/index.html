@@ -76,6 +76,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
           <div class="studio-subtitle">Tune cognitive rigor, dialectical perspective, voice synthesis, device persona, and visual theme</div>
+          <button id="backToSparringBtn" class="classic-btn primary small" style="padding: 6px 14px; font-size: 12px; font-weight: 700;" title="Return to Sparring Arena">← Back to Sparring</button>
           <button id="closeStudioBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;" title="Close Settings">✕</button>
         </div>
       </div>
@@ -190,6 +191,11 @@
               <button id="applyUserIdBtn" class="classic-btn secondary small">Switch Profile</button>
             </div>
           </div>
+        <!-- Studio Action Footer -->
+        <div class="studio-footer-bar full-width" style="grid-column: span 2; display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: 6px;">
+          <button id="bottomBackToSparringBtn" class="classic-btn primary" style="padding: 9px 20px; font-size: 13px; font-weight: 700;">
+            <span>← Back to Sparring</span>
+          </button>
         </div>
       </div>
     </section>
@@ -279,13 +285,13 @@
           </div>
         </div>
 
-        <!-- Step I: Opinion Input Chamber -->
-        <div class="chamber-card">
+        <!-- Section I: Articulate Your Conviction -->
+        <div class="chamber-card" id="chamberCard">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">1</span>
+              <span class="step-num">I</span>
               <div>
-                <span class="step-title">Articulate Your Conviction</span>
+                <span class="step-title">I — Articulate Your Conviction</span>
                 <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Enter an unexamined belief or conviction you want challenged</div>
               </div>
             </div>
@@ -329,12 +335,35 @@
           </div>
         </div>
 
-        <!-- Step II: Dynamic Stance Diagnosis Card -->
+        <!-- Non-Stance Soft Invitation Card (Rigorous Logic Spec § 2.4 & UI Spec § 6 & 7.2) -->
+        <div class="chamber-card non-stance-card" id="nonStanceCard" style="display: none;">
+          <div class="chamber-header">
+            <div class="step-indicator">
+              <span class="step-num" style="background: rgba(255,255,255,0.08); color: var(--accent-secondary);">💬</span>
+              <div>
+                <span class="step-title" id="nonStanceCategoryTitle">Conversational Inquiry</span>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Stance Gate: Non-evaluative input detected (Axiom A1)</div>
+              </div>
+            </div>
+            <div class="non-stance-badge" id="nonStanceBadge">NON_STANCE_REPLY</div>
+          </div>
+          <div class="non-stance-body">
+            <div class="non-stance-speech-bubble">
+              <span class="bubble-icon">🗣️</span>
+              <span id="nonStanceSayText">Welcome to Echo Chamber Breaker. State a strong opinion or conviction, and I will steelman the opposing case to test your thinking.</span>
+            </div>
+            <div class="non-stance-reason-text" id="nonStanceReasonText">
+              The system does not invent convictions or alter your honesty score for greetings, questions, or neutral descriptions. State a clear opinion you hold with certainty to begin dialectical sparring.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section II: Cognitive Stance Diagnosis Card -->
         <div class="chamber-card socratic-analysis-card" id="stanceCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">2</span>
-              <span class="step-title">Cognitive Stance Diagnosis</span>
+              <span class="step-num">II</span>
+              <span class="step-title">II — Cognitive Stance Diagnosis</span>
             </div>
             <div class="topic-pill" id="stanceTopicTag">Topic</div>
           </div>
@@ -373,12 +402,12 @@
           </div>
         </div>
 
-        <!-- Step III: The Steelmanned Counter-Case Card -->
+        <!-- Section III: The Steelmanned Counter-Case Card -->
         <div class="chamber-card socratic-steelman-card" id="steelmanCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">3</span>
-              <span class="step-title">The Steelmanned Counter-Case</span>
+              <span class="step-num">III</span>
+              <span class="step-title">III — The Steelmanned Counter-Case</span>
             </div>
             <div class="voice-compliance-badge">
               <span>🔊 Alexa Audio (&lt; 40 words)</span>
@@ -455,12 +484,12 @@
           <div class="toast-reason" id="feedbackReasonText">...</div>
         </div>
 
-        <!-- Step IV: Multi-Turn Debate Arena -->
+        <!-- Section IV: Dialectical Sparring Arena -->
         <div class="chamber-card debate-arena-card" id="debateCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">4</span>
-              <span class="step-title">Dialectical Sparring Arena</span>
+              <span class="step-num">IV</span>
+              <span class="step-title">IV — Dialectical Sparring Arena</span>
             </div>
             <div class="session-pill" id="debateSessionTag">Session: Active</div>
           </div>

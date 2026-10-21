@@ -15,29 +15,51 @@ export type StancePolarity =
   | "LEAN_DISAGREE"
   | "STRONG_DISAGREE";
 
+export type InputClassification =
+  | "STANCE"
+  | "GREETING"
+  | "QUESTION"
+  | "INCOMPLETE"
+  | "NEUTRAL"
+  | "META";
+
 export interface StanceAnalysis {
+  is_stance: boolean;
+  category?: InputClassification;
   originalStatement: string;
   detectedTopic: string;
   claim: string;
   polarity: StancePolarity;
   confidence: number; // 0.0 to 1.0 (calibrated)
+  conviction_certainty?: number; // 0 to 100 (calibrated, spec 3.2)
   emotionalCharge: number; // 0.0 to 1.0
+  emotional_charge?: number; // 0 to 100 (affect intensity, spec 3.2)
   detectedFallacies: BiasCategory[];
   blindSpots: string[];
+  blind_spots?: string[]; // 2-4 specific, non-generic items (spec 3.2)
   coreAssumption: string;
+  unexamined_assumption?: string; // one crisp sentence (spec 3.2)
+  topic_label?: string; // short label for UI (spec 3.2)
   calibrationNotes: string;
+  say: string; // <= 40 word spoken summary for Alexa (spec 3.2)
 }
 
 export interface SteelmanResponse {
-  say: string; // Voice-ready string: crisp, punchy, < 40 words
+  is_stance?: boolean;
+  say: string; // Voice-ready string: crisp, punchy, <= 40 words
   originalClaim: string;
   opposingThesis: string;
+  foundational_counter_thesis?: string; // one clear opposing thesis sentence (spec 4.2)
   coreArguments: {
     premise: string;
     evidenceOrMechanism: string;
   }[];
+  core_structural_premises?: string[]; // spec 4.2 alias
   concessionPoints: string[];
   epistemicQuestion: string; // Provocative follow-up question
+  socratic_inquiry?: string; // one sharp question that exposes a tension (spec 4.2)
+  challengeId?: string; // uuid
+  challenge_id?: string; // spec 4.2 alias
 }
 
 export type EngagementQuality =

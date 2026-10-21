@@ -399,8 +399,16 @@ async function refreshHonestyDashboard() {
     const reportData = await callTool("honesty_report", { userId: currentUserId });
     const content = reportData.structuredContent || reportData;
 
-    honestyScoreValue.textContent = Number(content.currentScore).toFixed(1);
-    honestyStatusLabel.textContent = content.scoreStatus || "BALANCED";
+    const score = Number(content.currentScore);
+    honestyScoreValue.textContent = score.toFixed(1);
+
+    // Derived label according to Normative Logic Spec § 5.2 and UI Spec § 4.1:
+    let derivedStatus = content.scoreStatus;
+    if (score > 65) derivedStatus = "OPEN_MINDED";
+    else if (score < 35) derivedStatus = "CONFIRMATION_TRAPPED";
+    else derivedStatus = "CALIBRATING";
+
+    honestyStatusLabel.textContent = derivedStatus;
     totalChallengesCount.textContent = content.totalChallenges || 0;
     engagementRateValue.textContent = `${content.engagementRatePercent || 0}%`;
     concessionCountValue.textContent = content.concessionCount || 0;
@@ -451,35 +459,68 @@ function updateStepper(stepNumber) {
 async function handleAnalyzeStance() {
   const statement = statementInput.value.trim();
   if (!statement) {
-    alert("Please enter a statement or opinion first.");
-    return;
+    alert("Please articulate a conviction, judgment, or opinion first.");
+    return null;
   }
 
   playEchoChime("wake");
   analyzeStanceBtn.disabled = true;
   analyzeStanceBtn.textContent = "Analyzing...";
 
+  const nonStanceCard = document.getElementById("nonStanceCard");
+
   try {
     const res = await callTool("analyze_stance", { statement, userId: currentUserId });
     const stance = res.structuredContent;
 
+    // Normative Logic Spec § 2.4 & UI Spec § 6 & § 7.2:
+    // If input is not a stance (greeting, question, fragment, neutral), NEVER invent conviction
+    if (stance.is_stance === false) {
+      // Invariant § 7.2: Clear any residual diagnosis, steelman, feedback, or arena panels
+      stanceCard.style.display = "none";
+      steelmanCard.style.display = "none";
+      if (feedbackCard) feedbackCard.style.display = "none";
+      const debateCardEl = document.getElementById("debateCard");
+      if (debateCardEl) debateCardEl.style.display = "none";
+
+      if (nonStanceCard) {
+        nonStanceCard.style.display = "block";
+        const sayEl = document.getElementById("nonStanceSayText");
+        if (sayEl) sayEl.textContent = stance.say || "Please state a conviction or belief you hold with high certainty.";
+        const reasonEl = document.getElementById("nonStanceReasonText");
+        if (reasonEl) reasonEl.textContent = stance.coreAssumption || stance.calibrationNotes || "The system does not invent convictions or alter your honesty score for greetings, questions, or neutral descriptions.";
+        const catTitle = document.getElementById("nonStanceCategoryTitle");
+        if (catTitle) catTitle.textContent = stance.category ? `${stance.category} Detected` : "Conversational Input";
+        const badge = document.getElementById("nonStanceBadge");
+        if (badge) badge.textContent = stance.category ? `${stance.category}_REPLY` : "NON_STANCE_REPLY";
+        nonStanceCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      return stance;
+    }
+
+    // Input IS a stance
+    if (nonStanceCard) nonStanceCard.style.display = "none";
+
     stanceCard.style.display = "block";
-    stanceTopicTag.textContent = stance.detectedTopic;
+    stanceTopicTag.textContent = stance.topic_label || stance.detectedTopic;
     stancePolarity.textContent = stance.polarity;
-    confidenceBar.style.width = `${Math.round(stance.confidence * 100)}%`;
-    confidenceText.textContent = `${Math.round(stance.confidence * 100)}% Certainty`;
-    emotionalBar.style.width = `${Math.round(stance.emotionalCharge * 100)}%`;
-    emotionalText.textContent = `${Math.round(stance.emotionalCharge * 100)}% Affect`;
+    const cert = stance.conviction_certainty !== undefined ? stance.conviction_certainty : Math.round(stance.confidence * 100);
+    confidenceBar.style.width = `${cert}%`;
+    confidenceText.textContent = `${cert}% Certainty`;
+    const aff = stance.emotional_charge !== undefined ? stance.emotional_charge : Math.round(stance.emotionalCharge * 100);
+    emotionalBar.style.width = `${aff}%`;
+    emotionalText.textContent = `${aff}% Affect`;
 
     blindSpotsList.innerHTML = "";
-    for (const spot of stance.blindSpots) {
+    const spots = stance.blind_spots || stance.blindSpots || [];
+    for (const spot of spots) {
       const li = document.createElement("li");
       li.className = "blindspot-item";
       li.innerHTML = `<span>⚠️</span> <span>${spot}</span>`;
       blindSpotsList.appendChild(li);
     }
 
-    coreAssumptionText.textContent = stance.coreAssumption || "No unstated assumptions detected.";
+    coreAssumptionText.textContent = stance.unexamined_assumption || stance.coreAssumption || "No unstated assumptions detected.";
 
     // Guard against content mismatch: if steelmanCard or debateCard were displaying an older statement, hide them
     if (activeSteelman && activeSteelman.originalClaim !== statement) {
@@ -491,9 +532,10 @@ async function handleAnalyzeStance() {
 
     updateStepper(2);
     stanceCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return stance;
   } finally {
     analyzeStanceBtn.disabled = false;
-    analyzeStanceBtn.textContent = "Analyze Stance";
+    analyzeStanceBtn.textContent = "🔍 Analyze Stance";
   }
 }
 
@@ -501,7 +543,7 @@ async function handleAnalyzeStance() {
 async function handleSteelman() {
   const statement = statementInput.value.trim();
   if (!statement) {
-    alert("Please enter a statement or opinion first.");
+    alert("Please articulate a conviction, judgment, or opinion first.");
     return;
   }
 
@@ -510,19 +552,30 @@ async function handleSteelman() {
   steelmanBtn.innerHTML = "<span>⚡ Generating Steelman...</span>";
 
   try {
-    // ALWAYS synchronize Stance Diagnosis for the CURRENT statement first!
-    await handleAnalyzeStance();
+    // 1. ALWAYS classify and synchronize Stance Diagnosis for CURRENT statement first!
+    const stance = await handleAnalyzeStance();
+
+    // Invariant Axioms A1 & A2: Non-stance inputs MUST NEVER receive a steelman
+    if (!stance || stance.is_stance === false) {
+      return;
+    }
 
     const res = await callTool("steelman", { statement, userId: currentUserId });
     const steelman = res.structuredContent;
+
+    if (steelman.is_stance === false) {
+      return;
+    }
+
     activeSteelman = steelman;
 
     steelmanCard.style.display = "block";
     spokenSayText.textContent = steelman.say;
-    opposingThesisText.textContent = steelman.opposingThesis;
+    opposingThesisText.textContent = steelman.foundational_counter_thesis || steelman.opposingThesis;
 
     premisesGrid.innerHTML = "";
-    for (const arg of steelman.coreArguments) {
+    const args = steelman.coreArguments || [];
+    for (const arg of args) {
       const card = document.createElement("div");
       card.className = "premise-card";
       card.innerHTML = `
@@ -532,7 +585,7 @@ async function handleSteelman() {
       premisesGrid.appendChild(card);
     }
 
-    epistemicQuestionText.textContent = steelman.epistemicQuestion;
+    epistemicQuestionText.textContent = steelman.socratic_inquiry || steelman.epistemicQuestion;
 
     // Reset debate arena and feedback if they belonged to an earlier statement
     const debateCardEl = document.getElementById("debateCard");
@@ -815,12 +868,18 @@ function setupCustomizationStudio() {
     });
   });
 
-  if (closeStudioBtn && customizationStudio) {
-    closeStudioBtn.addEventListener("click", () => {
-      customizationStudio.style.display = "none";
-      if (toggleStudioBtn) toggleStudioBtn.classList.remove("active-studio");
-    });
-  }
+  const closeStudio = () => {
+    customizationStudio.style.display = "none";
+    if (toggleStudioBtn) toggleStudioBtn.classList.remove("active-studio");
+    const chamberCard = document.getElementById("chamberCard") || document.querySelector(".sparring-stage");
+    if (chamberCard) chamberCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const backToSparringBtn = document.getElementById("backToSparringBtn");
+  const bottomBackToSparringBtn = document.getElementById("bottomBackToSparringBtn");
+  if (closeStudioBtn) closeStudioBtn.addEventListener("click", closeStudio);
+  if (backToSparringBtn) backToSparringBtn.addEventListener("click", closeStudio);
+  if (bottomBackToSparringBtn) bottomBackToSparringBtn.addEventListener("click", closeStudio);
 
   if (applyUserIdBtn && customUserIdInput) {
     applyUserIdBtn.addEventListener("click", async () => {
@@ -1051,14 +1110,14 @@ Verified append-only tamper-proof ledger via Model Context Protocol.
     });
   });
 
-  // Presets
+  // Presets (Topic Chips: Pre-fills text area only per Normative Logic Spec § 2.3 & UI Spec § 7.3)
   const presetCards = document.querySelectorAll(".preset-card");
   presetCards.forEach((card) => {
     card.addEventListener("click", () => {
       presetCards.forEach((c) => c.classList.remove("active"));
       card.classList.add("active");
       statementInput.value = card.getAttribute("data-text");
-      handleSteelman();
+      updateStepper(1);
     });
   });
 
