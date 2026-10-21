@@ -26,6 +26,10 @@ app.use("/simulator", express.static(simulatorPath));
 app.use("/static", express.static(simulatorPath));
 app.use(express.static(simulatorPath));
 
+app.get("/", (_req, res) => {
+  res.redirect("/simulator");
+});
+
 app.get(["/simulator", "/simulator/*"], (_req, res) => {
   res.sendFile(path.join(simulatorPath, "index.html"));
 });
