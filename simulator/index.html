@@ -3,83 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Echo Chamber Breaker — MCP Intellectual Honesty Coach</title>
-  <meta name="description" content="Anti-sycophant layer for Alexa+ and MCP clients: forces high-quality intellectual friction, steelmans opposing views, and measures intellectual honesty over time.">
+  <title>Echo Chamber Breaker — The Anti-Sycophant Sparring Partner</title>
+  <meta name="description" content="A self-hosted Model Context Protocol server and classic intellectual sparring partner that steelmans opposing views and measures epistemic honesty over time.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/simulator/style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header / Navbar -->
-    <header class="top-header">
-      <div class="brand">
-        <div class="brand-icon">
-          <span class="prism-glyph">⚡</span>
+  <div class="site-wrapper">
+    <!-- Sophisticated Classical Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="emblem">
+          <span class="emblem-glyph">⚖</span>
         </div>
-        <div>
-          <div class="brand-title">ECHO CHAMBER BREAKER</div>
-          <div class="brand-subtitle">The Anti-Sycophant Layer • Model Context Protocol Server</div>
+        <div class="header-titles">
+          <div class="app-name">ECHO CHAMBER BREAKER</div>
+          <div class="app-tagline">The Anti-Sycophant Layer for Alexa+ • Socratic Intellectual Sparring</div>
         </div>
       </div>
-      
-      <div class="header-status">
-        <div class="status-badge" id="mcpConnectionBadge">
-          <span class="status-dot online"></span>
-          <span id="mcpStatusText">MCP: Connected (Streamable HTTP)</span>
+
+      <div class="header-right">
+        <div class="status-indicator-pill" id="mcpConnectionBadge" title="MCP Streamable HTTP Connection Active">
+          <span class="pulsing-beacon"></span>
+          <span class="status-label" id="mcpStatusText">MCP Server Active</span>
         </div>
-        <div class="mode-pill" id="reasoningModePill">MODE: LOCAL COGNITIVE MOCK</div>
-        <button id="toggleTtsBtn" class="icon-btn" title="Toggle Voice / Text-to-Speech">
-          <span id="ttsIcon">🔊 Voice: On</span>
+        
+        <button id="toggleTtsBtn" class="classic-toggle-btn" title="Toggle Voice Audio Output">
+          <span class="toggle-icon" id="ttsIcon">🔊</span>
+          <span class="toggle-text" id="ttsLabel">Voice: Enabled</span>
         </button>
-        <button id="viewBenchmarkBtn" class="pill-btn secondary">
+
+        <button id="viewBenchmarkBtn" class="classic-nav-btn">
           <span>📊 ML Calibration</span>
+        </button>
+
+        <button id="exportReportBtn" class="classic-nav-btn highlight">
+          <span>📜 Export Certificate</span>
         </button>
       </div>
     </header>
 
-    <!-- Main Grid Layout -->
-    <main class="main-layout">
-      <!-- Left Column: Sparring & Stance Arena -->
-      <section class="arena-column">
-        <!-- Quick Presets -->
-        <div class="preset-strip">
-          <span class="preset-label">Test Convictions:</span>
-          <button class="preset-chip" data-text="Remote work is destroying company culture and productivity, and everyone must return to the office.">
-            🏢 Remote Work
-          </button>
-          <button class="preset-chip" data-text="Frontier AI development should be paused immediately by global treaties because extinction risks outweigh economic upside.">
-            🤖 Pause Frontier AI
-          </button>
-          <button class="preset-chip" data-text="Nuclear energy is too expensive, slow to build, and inherently dangerous to play any serious role in decarbonization.">
-            ⚛️ Nuclear Energy
-          </button>
-          <button class="preset-chip" data-text="Dynamic languages are completely unacceptable for enterprise software; static typing is strictly superior.">
-            💻 Static Typing
-          </button>
+    <!-- Main Experience Grid -->
+    <div class="layout-grid">
+      <!-- Left: Intellectual Sparring Arena -->
+      <section class="sparring-stage">
+        
+        <!-- Welcome Hero Banner -->
+        <div class="socratic-banner">
+          <div class="banner-quote">
+            “The highest form of human intelligence is to observe oneself without judgment — and to test one’s certainty against the strongest counter-argument.”
+          </div>
+          <div class="banner-attribution">— EPICTETUS ON CALIBRATION</div>
         </div>
 
-        <!-- Input Statement Card -->
-        <div class="card glass-card input-card">
-          <div class="card-header">
-            <h2 class="card-title">1. State Your Strong Conviction</h2>
-            <div class="card-badge">STANCE INPUT</div>
+        <!-- Presets Selection Bar -->
+        <div class="preset-curator">
+          <div class="curator-label">CHOOSE A CONVICTION TO SPAR:</div>
+          <div class="preset-scroll-track">
+            <button class="preset-card active" data-text="Remote work is destroying company culture and productivity, and everyone must return to the office.">
+              <span class="preset-icon">🏢</span>
+              <span class="preset-title">Remote Work & Culture</span>
+            </button>
+            <button class="preset-card" data-text="Frontier AI development should be paused immediately by global treaties because extinction risks outweigh economic upside.">
+              <span class="preset-icon">🤖</span>
+              <span class="preset-title">Pause Frontier AI</span>
+            </button>
+            <button class="preset-card" data-text="Nuclear energy is too slow, expensive, and dangerous to play any serious role in global decarbonization.">
+              <span class="preset-icon">⚛️</span>
+              <span class="preset-title">Nuclear Power Reality</span>
+            </button>
+            <button class="preset-card" data-text="Dynamic programming languages are obsolete for enterprise engineering; strict static typing is superior in every scenario.">
+              <span class="preset-icon">💻</span>
+              <span class="preset-title">Static vs Dynamic Code</span>
+            </button>
           </div>
-          <div class="input-container">
-            <textarea id="statementInput" placeholder="Speak or type a strong opinion, moral judgment, or certainty... (e.g. 'Offices are completely obsolete and companies forcing hybrid schedules are run by micromanagers.')" rows="3"></textarea>
-            <div class="input-actions">
-              <button id="voiceInputBtn" class="icon-btn voice-mic-btn" title="Speak opinion via microphone">
-                <span id="micIcon">🎙️ Voice Input</span>
+        </div>
+
+        <!-- Opinion Input Chamber -->
+        <div class="chamber-card">
+          <div class="chamber-header">
+            <div class="step-indicator">
+              <span class="step-num">I</span>
+              <span class="step-title">Articulate Your Conviction</span>
+            </div>
+            <div class="protocol-method-tag">tools/call: analyze_stance</div>
+          </div>
+
+          <div class="chamber-input-wrap">
+            <textarea id="statementInput" placeholder="Speak or type a strong conviction, moral judgment, or belief you hold with high certainty..." rows="3">Remote work is destroying company culture and productivity, and everyone must return to the office.</textarea>
+            
+            <div class="chamber-controls">
+              <button id="voiceInputBtn" class="mic-dictate-btn" title="Speak via microphone">
+                <span class="mic-wave">🎙️</span>
+                <span id="micLabel">Speak Opinion</span>
               </button>
-              <div class="action-buttons-group">
-                <button id="analyzeStanceBtn" class="action-btn secondary">
+
+              <div class="primary-actions">
+                <button id="analyzeStanceBtn" class="classic-btn secondary">
                   <span>Analyze Stance</span>
                 </button>
-                <button id="steelmanBtn" class="action-btn primary">
+                <button id="steelmanBtn" class="classic-btn primary">
                   <span>⚡ Steelman Opposing View</span>
                 </button>
-                <button id="startDebateBtn" class="action-btn highlight">
+                <button id="startDebateBtn" class="classic-btn accent">
                   <span>⚔️ Multi-Turn Debate</span>
                 </button>
               </div>
@@ -87,222 +115,232 @@
           </div>
         </div>
 
-        <!-- Stance Analysis Result Card -->
-        <div class="card glass-card" id="stanceCard" style="display: none;">
-          <div class="card-header">
-            <h2 class="card-title">Stance & Cognitive Certainty</h2>
-            <div class="meta-tag" id="stanceTopicTag">Topic</div>
+        <!-- Dynamic Stance Diagnosis Card -->
+        <div class="chamber-card socratic-analysis-card" id="stanceCard" style="display: none;">
+          <div class="chamber-header">
+            <div class="step-indicator">
+              <span class="step-num">II</span>
+              <span class="step-title">Cognitive Stance Diagnosis</span>
+            </div>
+            <div class="topic-pill" id="stanceTopicTag">Topic</div>
           </div>
-          <div class="stance-metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Polarity</div>
-              <div class="metric-value badge-polarity" id="stancePolarity">STRONG_AGREE</div>
+
+          <div class="stance-gauges-row">
+            <div class="gauge-card">
+              <div class="gauge-caption">POLARITY</div>
+              <div class="gauge-value highlight" id="stancePolarity">STRONG_AGREE</div>
             </div>
-            <div class="metric-box">
-              <div class="metric-label">Conviction / Confidence</div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="confidenceBar" style="width: 88%;"></div>
+            <div class="gauge-card">
+              <div class="gauge-caption">CONVICTION CERTAINTY</div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill" id="confidenceBar" style="width: 88%;"></div>
               </div>
-              <div class="metric-subtext" id="confidenceText">88% Certainty</div>
+              <div class="gauge-value" id="confidenceText">88% Certainty</div>
             </div>
-            <div class="metric-box">
-              <div class="metric-label">Emotional Charge</div>
-              <div class="progress-bar-container">
-                <div class="progress-bar-fill warning" id="emotionalBar" style="width: 65%;"></div>
+            <div class="gauge-card">
+              <div class="gauge-caption">EMOTIONAL CHARGE</div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill warm" id="emotionalBar" style="width: 65%;"></div>
               </div>
-              <div class="metric-subtext" id="emotionalText">65% Affect</div>
+              <div class="gauge-value" id="emotionalText">65% Affect</div>
             </div>
           </div>
 
-          <div class="bias-section">
-            <div class="section-subtitle">Cognitive Blind Spots Identified:</div>
-            <ul class="blindspot-list" id="blindSpotsList">
-              <!-- populated dynamically -->
-            </ul>
+          <div class="blindspots-container">
+            <div class="container-title">Identified Cognitive Blind Spots:</div>
+            <div class="blindspots-grid" id="blindSpotsList">
+              <!-- Dynamically populated -->
+            </div>
           </div>
 
-          <div class="assumption-callout" id="coreAssumptionBox">
-            <span class="callout-icon">🔍</span>
-            <span id="coreAssumptionText">Core assumption will appear here.</span>
+          <div class="unexamined-premise-card" id="coreAssumptionBox">
+            <div class="premise-badge">UNEXAMINED ASSUMPTION</div>
+            <div class="premise-text" id="coreAssumptionText">...</div>
           </div>
         </div>
 
-        <!-- Steelman Argument Card -->
-        <div class="card glass-card steelman-card" id="steelmanCard" style="display: none;">
-          <div class="card-header">
-            <div class="steelman-badge">
-              <span class="sparkle">✨</span> STEELMANNED OPPOSING THESIS
+        <!-- The Steelman Counter-Case Card -->
+        <div class="chamber-card socratic-steelman-card" id="steelmanCard" style="display: none;">
+          <div class="chamber-header">
+            <div class="step-indicator">
+              <span class="step-num">III</span>
+              <span class="step-title">The Steelmanned Counter-Case</span>
             </div>
-            <div class="voice-badge">
-              <span>🔊 Spoken Summary (&lt; 40 words)</span>
+            <div class="voice-compliance-badge">
+              <span>🔊 Alexa Audio (&lt; 40 words)</span>
             </div>
           </div>
 
-          <!-- Voice ready say bubble -->
-          <div class="spoken-bubble" id="spokenSayBubble">
-            <div class="bubble-speaker">ALEXA+ / VOICE CHANNEL:</div>
-            <div class="bubble-text" id="spokenSayText">...</div>
+          <!-- Spoken Audio Bubble -->
+          <div class="auditory-chamber">
+            <div class="auditory-label">ALEXA+ SPOKEN SYNTHESIS:</div>
+            <div class="auditory-quote" id="spokenSayText">...</div>
           </div>
 
-          <!-- Structured opposing thesis -->
-          <div class="thesis-box">
-            <div class="thesis-title">Core Counter-Thesis</div>
-            <div class="thesis-content" id="opposingThesisText">...</div>
+          <!-- Structural Opposing Thesis -->
+          <div class="structural-thesis-box">
+            <div class="thesis-header-label">FOUNDATIONAL COUNTER-THESIS:</div>
+            <div class="thesis-text" id="opposingThesisText">...</div>
           </div>
 
-          <!-- Core premises -->
-          <div class="premises-grid" id="premisesGrid">
-            <!-- populated dynamically -->
+          <!-- Three Structural Pillars -->
+          <div class="pillars-title">CORE STRUCTURAL PREMISES:</div>
+          <div class="premises-pillars-grid" id="premisesGrid">
+            <!-- Dynamically populated -->
           </div>
 
           <!-- Epistemic Question -->
-          <div class="epistemic-box">
-            <div class="epistemic-icon">❓</div>
-            <div class="epistemic-content">
-              <div class="epistemic-title">Epistemic Inquiry:</div>
-              <div class="epistemic-question" id="epistemicQuestionText">...</div>
+          <div class="socratic-inquiry-box">
+            <div class="inquiry-symbol">⚜</div>
+            <div class="inquiry-body">
+              <div class="inquiry-caption">SOCRATIC INQUIRY</div>
+              <div class="inquiry-text" id="epistemicQuestionText">...</div>
             </div>
           </div>
 
-          <!-- Response & Engagement Action Section -->
-          <div class="engagement-action-area">
-            <div class="section-subtitle">How will you respond to this friction?</div>
-            <textarea id="engagementReplyInput" placeholder="Grapple directly with the counter-premise, acknowledge valid points, or articulate your counter-thesis..." rows="2"></textarea>
+          <!-- Engagement Sparring Action -->
+          <div class="engagement-response-chamber">
+            <div class="response-title">HOW DO YOU RESPOND TO THIS COUNTER-CASE?</div>
+            <textarea id="engagementReplyInput" placeholder="Grapple directly with the opposing trade-offs, acknowledge valid points, or state your counter-rebuttal..." rows="2"></textarea>
             
-            <div class="engagement-btn-row">
-              <button id="dismissChallengeBtn" class="engagement-btn dismiss-btn" title="Dismiss without addressing">
+            <div class="response-actions-row">
+              <button id="dismissChallengeBtn" class="spar-action-btn dismiss" title="Dismiss without addressing trade-offs">
                 <span>✕ Dismiss (-3.0 pts)</span>
               </button>
-              <button id="concedePointBtn" class="engagement-btn concede-btn" title="Acknowledge valid points">
+              <button id="concedePointBtn" class="spar-action-btn concede" title="Acknowledge valid counter-points">
                 <span>🤝 Concede Valid Point (+8.5 pts)</span>
               </button>
-              <button id="submitEngagementBtn" class="engagement-btn submit-btn" title="Grapple with substantive reasoning">
+              <button id="submitEngagementBtn" class="spar-action-btn submit" title="Grapple with reasoned counter-argument">
                 <span>💬 Submit Counter-Rebuttal (+4.5 pts)</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Engagement Feedback Toast / Card -->
-        <div class="card glass-card feedback-card" id="feedbackCard" style="display: none;">
-          <div class="feedback-header">
-            <span class="feedback-badge" id="feedbackQualityBadge">HIGH RATIONALITY</span>
-            <span class="score-delta-badge" id="feedbackDeltaBadge">+4.5</span>
+        <!-- Engagement Feedback Toast -->
+        <div class="feedback-toast-card" id="feedbackCard" style="display: none;">
+          <div class="toast-header">
+            <span class="toast-badge" id="feedbackQualityBadge">HIGH RATIONALITY</span>
+            <span class="toast-delta" id="feedbackDeltaBadge">+4.5 PTS</span>
           </div>
-          <div class="feedback-body" id="feedbackReasonText">Reason will appear here.</div>
+          <div class="toast-reason" id="feedbackReasonText">...</div>
         </div>
 
-        <!-- Multi-Turn Debate Arena Card -->
-        <div class="card glass-card debate-card" id="debateCard" style="display: none;">
-          <div class="card-header">
-            <h2 class="card-title">⚔️ Multi-Turn Dialectical Sparring</h2>
-            <div class="meta-tag" id="debateSessionTag">Session: Active</div>
+        <!-- Multi-Turn Debate Arena -->
+        <div class="chamber-card debate-arena-card" id="debateCard" style="display: none;">
+          <div class="chamber-header">
+            <div class="step-indicator">
+              <span class="step-num">IV</span>
+              <span class="step-title">Dialectical Sparring Arena</span>
+            </div>
+            <div class="session-pill" id="debateSessionTag">Session: Active</div>
           </div>
-          <div class="debate-stream" id="debateTurnsStream">
+
+          <div class="debate-timeline" id="debateTurnsStream">
             <!-- Turns populated dynamically -->
           </div>
-          <div class="debate-controls" id="debateControls">
-            <textarea id="debateReplyInput" placeholder="Enter your counter-turn in this debate..." rows="2"></textarea>
-            <div class="debate-btn-row">
-              <button id="sendDebateTurnBtn" class="action-btn primary">
-                <span>💬 Send Counter-Turn</span>
+
+          <div class="debate-input-row">
+            <textarea id="debateReplyInput" placeholder="Present your next counter-turn in this dialectical session..." rows="2"></textarea>
+            <div class="debate-buttons">
+              <button id="sendDebateTurnBtn" class="classic-btn primary">
+                <span>💬 Submit Turn</span>
               </button>
-              <button id="concludeDebateBtn" class="action-btn secondary">
+              <button id="concludeDebateBtn" class="classic-btn secondary">
                 <span>🏁 Conclude Debate</span>
               </button>
             </div>
           </div>
         </div>
+
       </section>
 
-      <!-- Right Column: Intellectual Honesty Dashboard & Wire Trace -->
-      <section class="dashboard-column">
-        <!-- Honesty Score Card -->
-        <div class="card glass-card honesty-score-card">
-          <div class="card-header">
-            <h2 class="card-title">Intellectual Honesty Ledger</h2>
-            <div style="display: flex; gap: 8px;">
-              <button id="exportReportBtn" class="pill-btn secondary" title="Copy Certified Report Card">
-                <span>📋 Export Card</span>
-              </button>
-              <button id="proactiveChallengeBtn" class="pill-btn highlight">
-                <span>⚡ Challenge Me</span>
-              </button>
+      <!-- Right: Intellectual Honesty Dashboard & Wire Inspector -->
+      <aside class="dashboard-sidebar">
+        
+        <!-- Score & Ledger Card -->
+        <div class="chamber-card score-dossier-card">
+          <div class="chamber-header">
+            <div class="dossier-title">Intellectual Honesty Ledger</div>
+            <button id="proactiveChallengeBtn" class="summon-friction-btn" title="Receive proactive intellectual friction">
+              <span>⚡ Challenge Me</span>
+            </button>
+          </div>
+
+          <!-- Score Dial & Stats -->
+          <div class="score-monument">
+            <div class="score-ring-wrap">
+              <div class="score-num" id="honestyScoreValue">50.0</div>
+              <div class="score-state" id="honestyStatusLabel">BALANCED</div>
+            </div>
+
+            <div class="stats-triad">
+              <div class="triad-stat">
+                <div class="triad-val" id="totalChallengesCount">0</div>
+                <div class="triad-lbl">CHALLENGES</div>
+              </div>
+              <div class="triad-stat">
+                <div class="triad-val" id="engagementRateValue">0%</div>
+                <div class="triad-lbl">ENGAGEMENT</div>
+              </div>
+              <div class="triad-stat">
+                <div class="triad-val" id="concessionCountValue">0</div>
+                <div class="triad-lbl">CONCESSIONS</div>
+              </div>
             </div>
           </div>
 
-          <div class="score-overview">
-            <div class="score-radial">
-              <div class="score-number" id="honestyScoreValue">50.0</div>
-              <div class="score-label" id="honestyStatusLabel">BALANCED</div>
-            </div>
-            <div class="score-stats-grid">
-              <div class="stat-item">
-                <div class="stat-number" id="totalChallengesCount">0</div>
-                <div class="stat-name">Challenges</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-number" id="engagementRateValue">0%</div>
-                <div class="stat-name">Engaged</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-number" id="concessionCountValue">0</div>
-                <div class="stat-name">Concessions</div>
-              </div>
-            </div>
+          <!-- Epistemic Radar Chart -->
+          <div class="radar-box">
+            <div class="radar-title">5D Epistemic Calibration Radar</div>
+            <svg id="radarSvg" viewBox="0 0 300 240" class="radar-canvas"></svg>
           </div>
 
-          <!-- Radar Chart Visualization -->
-          <div class="radar-container">
-            <div class="chart-title">Epistemic Calibration Radar</div>
-            <svg id="radarSvg" viewBox="0 0 300 240" class="radar-svg">
-              <!-- Rendered via JS -->
-            </svg>
+          <!-- Append-Only Audit Trail -->
+          <div class="audit-trail-section">
+            <div class="trail-header">
+              <span class="trail-title">Append-Only Audit Trail</span>
+              <span class="tamper-tag">Tamper-Proof</span>
+            </div>
+            <div class="trail-feed" id="ledgerEventsStream">
+              <div class="empty-feed">No transactions recorded yet. State a conviction to initiate calibration.</div>
+            </div>
           </div>
         </div>
 
-        <!-- Live MCP Protocol Wire Trace Panel -->
-        <div class="card glass-card wire-trace-card">
-          <div class="trace-header">
-            <div class="trace-title">
-              <span class="dot-pulse"></span>
+        <!-- Live MCP Wire Trace Inspector -->
+        <div class="chamber-card trace-dossier-card">
+          <div class="trace-bar-header">
+            <div class="trace-label">
+              <span class="live-dot"></span>
               <span>LIVE MCP PROTOCOL TRACE</span>
             </div>
-            <div class="trace-actions">
-              <span class="trace-badge">JSON-RPC 2.0</span>
-              <button id="clearTraceBtn" class="small-text-btn">Clear</button>
+            <div class="trace-right">
+              <span class="protocol-version-pill">JSON-RPC 2.0</span>
+              <button id="clearTraceBtn" class="clear-btn">Clear</button>
             </div>
           </div>
-          <div class="trace-console" id="wireTraceConsole">
-            <div class="trace-entry system">
-              <span class="trace-timestamp">[READY]</span>
-              <span class="trace-method">System initialized. Ready to execute Streamable HTTP MCP calls.</span>
+
+          <div class="trace-terminal" id="wireTraceConsole">
+            <div class="terminal-line system">
+              <span class="term-time">[READY]</span>
+              <span>Streamable HTTP MCP router active. Ready for tools/call.</span>
             </div>
           </div>
         </div>
 
-        <!-- Recent Ledger Events Stream -->
-        <div class="card glass-card ledger-events-card">
-          <div class="card-header">
-            <h3 class="card-title-sm">Audit Trail (Append-Only Ledger)</h3>
-            <span class="subtle-badge">Tamper-Proof</span>
-          </div>
-          <div class="ledger-stream" id="ledgerEventsStream">
-            <div class="empty-ledger">No ledger events recorded yet.</div>
-          </div>
-        </div>
-      </section>
-    </main>
+      </aside>
+    </div>
 
     <!-- ML Calibration Modal -->
-    <div class="modal-overlay" id="benchmarkModal" style="display: none;">
-      <div class="modal-content glass-card">
-        <div class="modal-header">
-          <h2>Machine Learning & Epistemic Calibration Benchmark</h2>
-          <button id="closeBenchmarkModalBtn" class="close-modal-btn">✕</button>
+    <div class="classic-modal-overlay" id="benchmarkModal" style="display: none;">
+      <div class="classic-modal-dialog">
+        <div class="modal-top">
+          <div class="modal-heading">Machine Learning Calibration & Benchmark Dossier</div>
+          <button id="closeBenchmarkModalBtn" class="modal-close-icon">✕</button>
         </div>
-        <div class="modal-body" id="benchmarkModalBody">
-          <div class="loading-state">Running benchmark evaluation on dataset...</div>
+        <div class="modal-content-area" id="benchmarkModalBody">
+          <div class="loading-spinner">Evaluating Expected Calibration Error (ECE) across stratified domain slices...</div>
         </div>
       </div>
     </div>

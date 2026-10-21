@@ -192,7 +192,8 @@ function startRecording() {
     speechRecognition.start();
     isRecording = true;
     voiceInputBtn.classList.add("recording");
-    voiceInputBtn.querySelector("#micIcon").textContent = "🔴 Listening...";
+    const micLabel = document.getElementById("micLabel");
+    if (micLabel) micLabel.textContent = "Listening...";
   } catch (err) {
     console.error(err);
   }
@@ -201,13 +202,14 @@ function startRecording() {
 function stopRecording() {
   isRecording = false;
   voiceInputBtn.classList.remove("recording");
-  voiceInputBtn.querySelector("#micIcon").textContent = "🎙️ Voice Input";
+  const micLabel = document.getElementById("micLabel");
+  if (micLabel) micLabel.textContent = "Speak Opinion";
   if (speechRecognition) {
     try { speechRecognition.stop(); } catch {}
   }
 }
 
-// Render SVG Epistemic Radar Chart
+// Render SVG Epistemic Radar Chart with Classical Gold Aesthetic
 function renderRadar(metrics) {
   const labels = [
     { key: "opennessToEvidence", label: "Openness" },
@@ -217,21 +219,20 @@ function renderRadar(metrics) {
     { key: "consistency", label: "Consistency" },
   ];
 
-  const size = 240;
   const cx = 150;
-  const cy = 120;
-  const radius = 80;
+  const cy = 115;
+  const radius = 75;
   const angleStep = (Math.PI * 2) / labels.length;
 
   let gridSvg = "";
-  // Web circles
+  // Web concentric polygons
   for (let r = 0.25; r <= 1.0; r += 0.25) {
     const pts = [];
     for (let i = 0; i < labels.length; i++) {
       const a = i * angleStep - Math.PI / 2;
       pts.push(`${cx + Math.cos(a) * radius * r},${cy + Math.sin(a) * radius * r}`);
     }
-    gridSvg += `<polygon points="${pts.join(" ")}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+    gridSvg += `<polygon points="${pts.join(" ")}" fill="none" stroke="rgba(212, 175, 55, 0.14)" stroke-width="1"/>`;
   }
 
   // Radial axes & labels
@@ -240,28 +241,32 @@ function renderRadar(metrics) {
     const a = i * angleStep - Math.PI / 2;
     const ax = cx + Math.cos(a) * radius;
     const ay = cy + Math.sin(a) * radius;
-    gridSvg += `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
+    gridSvg += `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="rgba(212, 175, 55, 0.18)" stroke-width="1"/>`;
 
-    const lx = cx + Math.cos(a) * (radius + 20);
+    const lx = cx + Math.cos(a) * (radius + 22);
     const ly = cy + Math.sin(a) * (radius + 14);
-    labelsSvg += `<text x="${lx}" y="${ly}" fill="#94a3b8" font-size="9" font-family="'Outfit', sans-serif" text-anchor="middle" dominant-baseline="middle">${labels[i].label}</text>`;
+    labelsSvg += `<text x="${lx}" y="${ly}" fill="#c9c5bd" font-size="9.5" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" text-anchor="middle" dominant-baseline="middle">${labels[i].label}</text>`;
   }
 
-  // Data polygon
+  // Data polygon & vertices
   const dataPts = [];
+  let pointsSvg = "";
   for (let i = 0; i < labels.length; i++) {
     const val = (metrics[labels[i].key] || 50) / 100;
     const a = i * angleStep - Math.PI / 2;
-    dataPts.push(`${cx + Math.cos(a) * radius * val},${cy + Math.sin(a) * radius * val}`);
+    const px = cx + Math.cos(a) * radius * val;
+    const py = cy + Math.sin(a) * radius * val;
+    dataPts.push(`${px},${py}`);
+    pointsSvg += `<circle cx="${px}" cy="${py}" r="3" fill="#f7e7b4" stroke="#d4af37" stroke-width="1.5" />`;
   }
 
   const polygonSvg = `
-    <polygon points="${dataPts.join(" ")}" fill="rgba(99, 102, 241, 0.35)" stroke="#6366f1" stroke-width="2">
-      <animate attributeName="fill-opacity" values="0.25;0.45;0.25" dur="3s" repeatCount="indefinite" />
+    <polygon points="${dataPts.join(" ")}" fill="rgba(212, 175, 55, 0.25)" stroke="#d4af37" stroke-width="2">
+      <animate attributeName="fill-opacity" values="0.2;0.38;0.2" dur="3.5s" repeatCount="indefinite" />
     </polygon>
   `;
 
-  radarSvg.innerHTML = `${gridSvg}${polygonSvg}${labelsSvg}`;
+  radarSvg.innerHTML = `${gridSvg}${polygonSvg}${pointsSvg}${labelsSvg}`;
 }
 
 // Refresh Dashboard via 'honesty_report'
@@ -420,8 +425,8 @@ async function handleEngagement(mode) {
 
     feedbackCard.style.display = "block";
     const deltaBadge = document.getElementById("feedbackDeltaBadge");
-    deltaBadge.textContent = `${assessment.scoreDelta > 0 ? "+" : ""}${assessment.scoreDelta} pts`;
-    deltaBadge.className = `score-delta-badge ${assessment.scoreDelta < 0 ? "negative" : ""}`;
+    deltaBadge.textContent = `${assessment.scoreDelta > 0 ? "+" : ""}${assessment.scoreDelta} PTS`;
+    deltaBadge.className = `toast-delta ${assessment.scoreDelta < 0 ? "negative" : ""}`;
 
     document.getElementById("feedbackQualityBadge").textContent = assessment.quality.replace(/_/g, " ");
     document.getElementById("feedbackReasonText").textContent = assessment.reason;
@@ -667,7 +672,9 @@ Verified tamper-proof append-only ledger via Model Context Protocol.
 
   toggleTtsBtn.addEventListener("click", () => {
     isTtsEnabled = !isTtsEnabled;
-    ttsIcon.textContent = isTtsEnabled ? "🔊 Voice: On" : "🔇 Voice: Off";
+    ttsIcon.textContent = isTtsEnabled ? "🔊" : "🔇";
+    const ttsLabel = document.getElementById("ttsLabel");
+    if (ttsLabel) ttsLabel.textContent = isTtsEnabled ? "Voice: Enabled" : "Voice: Muted";
   });
 
   voiceInputBtn.addEventListener("click", () => {
@@ -676,9 +683,12 @@ Verified tamper-proof append-only ledger via Model Context Protocol.
   });
 
   // Presets
-  document.querySelectorAll(".preset-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      statementInput.value = chip.getAttribute("data-text");
+  const presetCards = document.querySelectorAll(".preset-card");
+  presetCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      presetCards.forEach((c) => c.classList.remove("active"));
+      card.classList.add("active");
+      statementInput.value = card.getAttribute("data-text");
       handleSteelman();
     });
   });
