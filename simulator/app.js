@@ -1,15 +1,31 @@
 /**
- * Echo Chamber Breaker — Web Simulator MCP Client
+ * Echo Chamber Breaker — Amazon Bedrock & Alexa+ Web Simulator MCP Client
  * Communicates with the Streamable HTTP server via JSON-RPC 2.0.
  */
 
-// State
+// Customization & Client State
 let rpcIdCounter = 1;
 let isTtsEnabled = true;
 let isRecording = false;
 let currentUserId = "default-user";
 let activeSteelman = null;
 let speechRecognition = null;
+let audioCtx = null;
+
+// Studio Settings
+let currentTheme = "theme-amazon";
+let activeRigor = "standard";
+let activePersona = "economist";
+let voiceSpeed = 1.0;
+let voicePitch = 1.0;
+let isChimesEnabled = true;
+let lastKnownMetrics = {
+  opennessToEvidence: 50,
+  dialecticalRigor: 50,
+  rebuttalQuality: 50,
+  intellectualHumility: 50,
+  consistency: 50,
+};
 
 // DOM Elements
 const statementInput = document.getElementById("statementInput");
@@ -57,6 +73,67 @@ const engagementRateValue = document.getElementById("engagementRateValue");
 const concessionCountValue = document.getElementById("concessionCountValue");
 const radarSvg = document.getElementById("radarSvg");
 const ledgerEventsStream = document.getElementById("ledgerEventsStream");
+
+// Synthesized Echo Chimes via Web Audio API
+function playEchoChime(type = "wake") {
+  if (!isChimesEnabled) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+
+    if (type === "wake") {
+      // Classic Alexa dual-tone wake chime (523Hz -> 659Hz)
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.12);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } else if (type === "concession") {
+      // Harmonic triad chord for +8.5 pts (C5 - E5 - G5)
+      [523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.type = "triangle";
+        const delay = idx * 0.08;
+        osc.frequency.setValueAtTime(freq, now + delay);
+        gain.gain.setValueAtTime(0.09, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.5);
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.5);
+      });
+    } else if (type === "dismiss") {
+      // Subtle downward dismissal chime (392Hz -> 329Hz)
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(392.0, now);
+      osc.frequency.setValueAtTime(329.63, now + 0.1);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+  } catch (err) {
+    // Audio context may require initial user gesture
+  }
+}
 
 // Wire Trace Logger
 function logTrace(type, message, details = null) {
@@ -125,11 +202,18 @@ async function callMcp(method, params = {}) {
   }
 }
 
-// Call MCP Tool Helper
+// Call MCP Tool Helper with Customization Context
 async function callTool(name, args = {}) {
+  // Inject active customizations into metadata or arguments
+  const enhancedArgs = {
+    ...args,
+    rigor: activeRigor,
+    persona: activePersona,
+  };
+
   const result = await callMcp("tools/call", {
     name,
-    arguments: args,
+    arguments: enhancedArgs,
   });
 
   if (result.content && result.content[0] && result.content[0].text) {
@@ -146,13 +230,26 @@ async function callTool(name, args = {}) {
   return result;
 }
 
-// Voice Output (SpeechSynthesis)
+// Alexa Voice Output (SpeechSynthesis)
 function speakVoice(text) {
   if (!("speechSynthesis" in window) || !isTtsEnabled) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.05;
-  utterance.pitch = 1.0;
+  utterance.rate = voiceSpeed;
+  utterance.pitch = voicePitch;
+
+  const alexaWaveform = document.getElementById("alexaWaveform");
+  if (alexaWaveform) {
+    alexaWaveform.style.opacity = "1";
+  }
+
+  utterance.onend = () => {
+    if (alexaWaveform) alexaWaveform.style.opacity = "0.4";
+  };
+  utterance.onerror = () => {
+    if (alexaWaveform) alexaWaveform.style.opacity = "0.4";
+  };
+
   window.speechSynthesis.speak(utterance);
 }
 
@@ -188,6 +285,7 @@ function setupSpeechRecognition() {
 
 function startRecording() {
   if (!speechRecognition) return;
+  playEchoChime("wake");
   try {
     speechRecognition.start();
     isRecording = true;
@@ -203,14 +301,17 @@ function stopRecording() {
   isRecording = false;
   voiceInputBtn.classList.remove("recording");
   const micLabel = document.getElementById("micLabel");
-  if (micLabel) micLabel.textContent = "Speak Opinion";
+  if (micLabel) micLabel.textContent = "Speak to Alexa";
   if (speechRecognition) {
     try { speechRecognition.stop(); } catch {}
   }
 }
 
-// Render SVG Epistemic Radar Chart with Classical Gold Aesthetic
+// Render SVG Epistemic Radar Chart with Dynamic Theme Accents
 function renderRadar(metrics) {
+  lastKnownMetrics = metrics || lastKnownMetrics;
+  const m = lastKnownMetrics;
+
   const labels = [
     { key: "opennessToEvidence", label: "Openness" },
     { key: "dialecticalRigor", label: "Rigor" },
@@ -224,6 +325,29 @@ function renderRadar(metrics) {
   const radius = 75;
   const angleStep = (Math.PI * 2) / labels.length;
 
+  // Determine colors based on active theme
+  let strokeColor = "#ff9900";
+  let fillColor = "rgba(255, 153, 0, 0.22)";
+  let pointColor = "#ffb84d";
+  let gridColor = "rgba(255, 153, 0, 0.15)";
+
+  if (document.body.classList.contains("theme-alexa")) {
+    strokeColor = "#00e5ff";
+    fillColor = "rgba(0, 229, 255, 0.22)";
+    pointColor = "#67e8f9";
+    gridColor = "rgba(0, 229, 255, 0.15)";
+  } else if (document.body.classList.contains("theme-aws")) {
+    strokeColor = "#10b981";
+    fillColor = "rgba(16, 185, 129, 0.22)";
+    pointColor = "#34d399";
+    gridColor = "rgba(16, 185, 129, 0.15)";
+  } else if (document.body.classList.contains("theme-socratic")) {
+    strokeColor = "#d4af37";
+    fillColor = "rgba(212, 175, 55, 0.25)";
+    pointColor = "#f7e7b4";
+    gridColor = "rgba(212, 175, 55, 0.15)";
+  }
+
   let gridSvg = "";
   // Web concentric polygons
   for (let r = 0.25; r <= 1.0; r += 0.25) {
@@ -232,7 +356,7 @@ function renderRadar(metrics) {
       const a = i * angleStep - Math.PI / 2;
       pts.push(`${cx + Math.cos(a) * radius * r},${cy + Math.sin(a) * radius * r}`);
     }
-    gridSvg += `<polygon points="${pts.join(" ")}" fill="none" stroke="rgba(212, 175, 55, 0.14)" stroke-width="1"/>`;
+    gridSvg += `<polygon points="${pts.join(" ")}" fill="none" stroke="${gridColor}" stroke-width="1"/>`;
   }
 
   // Radial axes & labels
@@ -241,27 +365,27 @@ function renderRadar(metrics) {
     const a = i * angleStep - Math.PI / 2;
     const ax = cx + Math.cos(a) * radius;
     const ay = cy + Math.sin(a) * radius;
-    gridSvg += `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="rgba(212, 175, 55, 0.18)" stroke-width="1"/>`;
+    gridSvg += `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="${gridColor}" stroke-width="1"/>`;
 
     const lx = cx + Math.cos(a) * (radius + 22);
     const ly = cy + Math.sin(a) * (radius + 14);
-    labelsSvg += `<text x="${lx}" y="${ly}" fill="#c9c5bd" font-size="9.5" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" text-anchor="middle" dominant-baseline="middle">${labels[i].label}</text>`;
+    labelsSvg += `<text x="${lx}" y="${ly}" fill="#94a3b8" font-size="9.5" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" text-anchor="middle" dominant-baseline="middle">${labels[i].label}</text>`;
   }
 
   // Data polygon & vertices
   const dataPts = [];
   let pointsSvg = "";
   for (let i = 0; i < labels.length; i++) {
-    const val = (metrics[labels[i].key] || 50) / 100;
+    const val = (m[labels[i].key] || 50) / 100;
     const a = i * angleStep - Math.PI / 2;
     const px = cx + Math.cos(a) * radius * val;
     const py = cy + Math.sin(a) * radius * val;
     dataPts.push(`${px},${py}`);
-    pointsSvg += `<circle cx="${px}" cy="${py}" r="3" fill="#f7e7b4" stroke="#d4af37" stroke-width="1.5" />`;
+    pointsSvg += `<circle cx="${px}" cy="${py}" r="3" fill="${pointColor}" stroke="${strokeColor}" stroke-width="1.5" />`;
   }
 
   const polygonSvg = `
-    <polygon points="${dataPts.join(" ")}" fill="rgba(212, 175, 55, 0.25)" stroke="#d4af37" stroke-width="2">
+    <polygon points="${dataPts.join(" ")}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2">
       <animate attributeName="fill-opacity" values="0.2;0.38;0.2" dur="3.5s" repeatCount="indefinite" />
     </polygon>
   `;
@@ -321,6 +445,7 @@ async function handleAnalyzeStance() {
     return;
   }
 
+  playEchoChime("wake");
   analyzeStanceBtn.disabled = true;
   analyzeStanceBtn.textContent = "Analyzing...";
 
@@ -360,11 +485,11 @@ async function handleSteelman() {
     return;
   }
 
+  playEchoChime("wake");
   steelmanBtn.disabled = true;
   steelmanBtn.innerHTML = "<span>⚡ Generating Steelman...</span>";
 
   try {
-    // Also display stance if not yet displayed
     if (stanceCard.style.display === "none") {
       handleAnalyzeStance();
     }
@@ -402,10 +527,13 @@ async function handleEngagement(mode) {
   let userReplyText = reply;
 
   if (mode === "dismiss") {
+    playEchoChime("dismiss");
     userReplyText = reply || "Whatever, you're wrong and I don't care.";
   } else if (mode === "concede") {
+    playEchoChime("concession");
     userReplyText = reply || "I concede that you made a valid point regarding the trade-offs.";
   } else {
+    playEchoChime("wake");
     if (!reply) {
       alert("Please articulate your counter-argument before submitting.");
       return;
@@ -441,6 +569,7 @@ async function handleEngagement(mode) {
 
 // Action: Proactive Challenge ("Challenge Me")
 async function handleProactiveChallenge() {
+  playEchoChime("wake");
   proactiveChallengeBtn.disabled = true;
   proactiveChallengeBtn.textContent = "Summoning...";
 
@@ -460,7 +589,7 @@ async function handleProactiveChallenge() {
 // Action: View ML Benchmark Modal
 async function handleViewBenchmark() {
   benchmarkModal.style.display = "flex";
-  benchmarkModalBody.innerHTML = `<div class="loading-state">Running benchmark evaluation on dataset...</div>`;
+  benchmarkModalBody.innerHTML = `<div class="loading-state" style="padding: 20px; text-align: center; color: #94a3b8;">Running benchmark evaluation across stratified domain slices...</div>`;
 
   try {
     const res = await fetch("/api/benchmark");
@@ -518,6 +647,112 @@ async function handleViewBenchmark() {
   }
 }
 
+// Setup Customization Studio Listeners
+function setupCustomizationStudio() {
+  const toggleStudioBtn = document.getElementById("toggleStudioBtn");
+  const customizationStudio = document.getElementById("customizationStudio");
+
+  if (toggleStudioBtn && customizationStudio) {
+    toggleStudioBtn.addEventListener("click", () => {
+      const isVisible = customizationStudio.style.display !== "none";
+      customizationStudio.style.display = isVisible ? "none" : "flex";
+      toggleStudioBtn.classList.toggle("active-studio", !isVisible);
+    });
+  }
+
+  // Theme Switcher
+  document.querySelectorAll(".theme-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".theme-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const theme = btn.getAttribute("data-theme");
+      document.body.className = theme;
+      currentTheme = theme;
+      renderRadar();
+      logTrace("system", `Applied theme: ${theme}`);
+    });
+  });
+
+  // Sparring Rigor Switcher
+  document.querySelectorAll(".rigor-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".rigor-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeRigor = btn.getAttribute("data-rigor");
+      logTrace("system", `Sparring rigor set to: ${activeRigor.toUpperCase()}`);
+    });
+  });
+
+  // Persona Switcher
+  document.querySelectorAll(".persona-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".persona-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      activePersona = btn.getAttribute("data-persona");
+      logTrace("system", `Cognitive perspective lens set to: ${activePersona.toUpperCase()}`);
+    });
+  });
+
+  // Voice Speed & Pitch Sliders
+  const voiceSpeedSlider = document.getElementById("voiceSpeedSlider");
+  const voiceSpeedVal = document.getElementById("voiceSpeedVal");
+  if (voiceSpeedSlider && voiceSpeedVal) {
+    voiceSpeedSlider.addEventListener("input", (e) => {
+      voiceSpeed = parseFloat(e.target.value);
+      voiceSpeedVal.textContent = `${voiceSpeed.toFixed(1)}x`;
+    });
+  }
+
+  const voicePitchSlider = document.getElementById("voicePitchSlider");
+  const voicePitchVal = document.getElementById("voicePitchVal");
+  if (voicePitchSlider && voicePitchVal) {
+    voicePitchSlider.addEventListener("input", (e) => {
+      voicePitch = parseFloat(e.target.value);
+      voicePitchVal.textContent = voicePitch.toFixed(1);
+    });
+  }
+
+  // Sound Chime Toggle
+  const toggleChimesBtn = document.getElementById("toggleChimesBtn");
+  if (toggleChimesBtn) {
+    toggleChimesBtn.addEventListener("click", () => {
+      isChimesEnabled = !isChimesEnabled;
+      toggleChimesBtn.classList.toggle("active", isChimesEnabled);
+      toggleChimesBtn.textContent = isChimesEnabled ? "🔔 Echo Chimes: ON" : "🔕 Echo Chimes: OFF";
+      if (isChimesEnabled) playEchoChime("wake");
+    });
+  }
+
+  // Profile Chips Switcher
+  const customUserIdInput = document.getElementById("customUserIdInput");
+  const applyUserIdBtn = document.getElementById("applyUserIdBtn");
+
+  document.querySelectorAll(".profile-chip").forEach((chip) => {
+    chip.addEventListener("click", async () => {
+      document.querySelectorAll(".profile-chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      const user = chip.getAttribute("data-user");
+      currentUserId = user;
+      if (customUserIdInput) customUserIdInput.value = user;
+      logTrace("system", `Switched active device profile to: ${user}`);
+      await refreshHonestyDashboard();
+    });
+  });
+
+  if (applyUserIdBtn && customUserIdInput) {
+    applyUserIdBtn.addEventListener("click", async () => {
+      const val = customUserIdInput.value.trim();
+      if (!val) return;
+      currentUserId = val;
+      document.querySelectorAll(".profile-chip").forEach((c) => {
+        c.classList.toggle("active", c.getAttribute("data-user") === val);
+      });
+      logTrace("system", `Switched active user ID to: ${currentUserId}`);
+      await refreshHonestyDashboard();
+    });
+  }
+}
+
 // Event Listeners
 function initializeEventListeners() {
   analyzeStanceBtn.addEventListener("click", handleAnalyzeStance);
@@ -547,6 +782,7 @@ function initializeEventListeners() {
         alert("Please enter a thesis statement first.");
         return;
       }
+      playEchoChime("wake");
       startDebateBtn.disabled = true;
       startDebateBtn.textContent = "Initiating...";
 
@@ -576,7 +812,7 @@ function initializeEventListeners() {
     div.className = `debate-turn ${isUser ? "user" : "assistant"}`;
     div.innerHTML = `
       <div class="turn-header">
-        <span>${isUser ? "👤 YOU (TURN " + turnNumber + ")" : "🤖 ECHOBREAKER (TURN " + turnNumber + ")"}</span>
+        <span>${isUser ? "👤 YOU (TURN " + turnNumber + ")" : "🤖 ALEXA+ (TURN " + turnNumber + ")"}</span>
       </div>
       <div>${text}</div>
     `;
@@ -589,6 +825,7 @@ function initializeEventListeners() {
       const userReply = debateReplyInput.value.trim();
       if (!userReply || !activeDebateId) return;
 
+      playEchoChime("wake");
       sendDebateTurnBtn.disabled = true;
       sendDebateTurnBtn.textContent = "Countering...";
 
@@ -611,7 +848,7 @@ function initializeEventListeners() {
         await refreshHonestyDashboard();
       } finally {
         sendDebateTurnBtn.disabled = false;
-        sendDebateTurnBtn.textContent = "💬 Send Counter-Turn";
+        sendDebateTurnBtn.textContent = "💬 Submit Turn";
       }
     });
   }
@@ -645,6 +882,7 @@ function initializeEventListeners() {
       const text = `
 ╔══════════════════════════════════════════════════════════╗
 ║  ECHO CHAMBER BREAKER — INTELLECTUAL HONESTY CERTIFICATE ║
+║  POWERED BY AMAZON BEDROCK & ALEXA+ MODEL CONTEXT PROTO  ║
 ╠══════════════════════════════════════════════════════════╣
 ║ User ID: ${c.userId.padEnd(47)}║
 ║ Current Score: ${String(c.currentScore).padEnd(41)}║
@@ -658,9 +896,10 @@ function initializeEventListeners() {
 ║ Humility: ${(c.radarMetrics.intellectualHumility + "/100").padEnd(46)}║
 ║ Rebuttal Quality: ${(c.radarMetrics.rebuttalQuality + "/100").padEnd(38)}║
 ╚══════════════════════════════════════════════════════════╝
-Verified tamper-proof append-only ledger via Model Context Protocol.
+Verified append-only tamper-proof ledger via Model Context Protocol.
 `;
       await navigator.clipboard.writeText(text);
+      playEchoChime("concession");
       alert("Intellectual Honesty Certificate copied to clipboard!");
     });
   }
@@ -692,6 +931,9 @@ Verified tamper-proof append-only ledger via Model Context Protocol.
       handleSteelman();
     });
   });
+
+  // Setup Customization Studio
+  setupCustomizationStudio();
 }
 
 // Initial MCP Handshake & Ready Boot
@@ -704,13 +946,13 @@ async function boot() {
     await callMcp("initialize", {
       protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: "echo-chamber-breaker-web-simulator", version: "1.0.0" },
+      clientInfo: { name: "echo-chamber-breaker-amazon-simulator", version: "1.0.0" },
     });
 
     // 2. Discover Tools
     const toolsResult = await callMcp("tools/list", {});
     const count = toolsResult.tools ? toolsResult.tools.length : 0;
-    logTrace("system", `Discovered ${count} active MCP tools ready for execution.`);
+    logTrace("system", `Discovered ${count} active MCP tools ready for Amazon Bedrock.`);
 
     // 3. Load initial honesty dashboard
     await refreshHonestyDashboard();

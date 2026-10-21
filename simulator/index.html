@@ -3,47 +3,187 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Echo Chamber Breaker — The Anti-Sycophant Sparring Partner</title>
-  <meta name="description" content="A self-hosted Model Context Protocol server and classic intellectual sparring partner that steelmans opposing views and measures epistemic honesty over time.">
+  <title>Echo Chamber Breaker — Amazon Bedrock & Alexa+ Anti-Sycophant Layer</title>
+  <meta name="description" content="A self-hosted Model Context Protocol (MCP) server for Amazon Bedrock and Alexa+ that steelmans opposing views and measures epistemic honesty over time.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/simulator/style.css">
 </head>
-<body>
+<body class="theme-amazon">
   <div class="site-wrapper">
-    <!-- Sophisticated Classical Header -->
+    
+    <!-- Top Amazon & AWS Brand Header -->
     <header class="app-header">
       <div class="header-left">
-        <div class="emblem">
-          <span class="emblem-glyph">⚖</span>
+        <div class="alexa-ring-emblem" id="alexaRingEmblem" title="Alexa+ Active Listening Ring">
+          <div class="ring-core"></div>
+          <div class="ring-pulse"></div>
         </div>
         <div class="header-titles">
-          <div class="app-name">ECHO CHAMBER BREAKER</div>
-          <div class="app-tagline">The Anti-Sycophant Layer for Alexa+ • Socratic Intellectual Sparring</div>
+          <div class="brand-row">
+            <span class="app-name">ECHO CHAMBER BREAKER</span>
+            <span class="aws-badge">AWS BEDROCK</span>
+            <span class="alexa-badge">ALEXA+ COGNITIVE LAYER</span>
+          </div>
+          <div class="app-tagline">Self-Hosted Model Context Protocol (MCP) Server • Anti-Sycophant Dialectical Partner</div>
         </div>
       </div>
 
       <div class="header-right">
+        <!-- MCP Status -->
         <div class="status-indicator-pill" id="mcpConnectionBadge" title="MCP Streamable HTTP Connection Active">
           <span class="pulsing-beacon"></span>
-          <span class="status-label" id="mcpStatusText">MCP Server Active</span>
+          <span class="status-label" id="mcpStatusText">MCP Streamable HTTP</span>
         </div>
+
+        <!-- Customizations Studio Toggle -->
+        <button id="toggleStudioBtn" class="classic-nav-btn active-studio" title="Open Customization Deck">
+          <span class="btn-icon">⚙️</span>
+          <span>Customizations</span>
+        </button>
         
+        <!-- Voice Toggle -->
         <button id="toggleTtsBtn" class="classic-toggle-btn" title="Toggle Voice Audio Output">
           <span class="toggle-icon" id="ttsIcon">🔊</span>
           <span class="toggle-text" id="ttsLabel">Voice: Enabled</span>
         </button>
 
+        <!-- ML Calibration Modal -->
         <button id="viewBenchmarkBtn" class="classic-nav-btn">
           <span>📊 ML Calibration</span>
         </button>
 
+        <!-- Export Certificate -->
         <button id="exportReportBtn" class="classic-nav-btn highlight">
           <span>📜 Export Certificate</span>
         </button>
       </div>
     </header>
+
+    <!-- Interactive Customization Studio (Amazon / AWS Configuration Deck) -->
+    <section class="customization-studio" id="customizationStudio">
+      <div class="studio-header">
+        <div class="studio-title">
+          <span class="studio-icon">🎛️</span>
+          <span>AMAZON BEDROCK & ALEXA+ CUSTOMIZATION STUDIO</span>
+        </div>
+        <div class="studio-subtitle">Tune cognitive rigor, dialectical perspective, voice synthesis, device persona, and visual theme</div>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Theme Palette -->
+        <div class="studio-control-card">
+          <label class="studio-label">VISUAL THEME & PALETTE</label>
+          <div class="theme-buttons-row">
+            <button class="theme-btn active" data-theme="theme-amazon">
+              <span class="theme-swatch amazon-swatch"></span>
+              <span>Amazon Cloud</span>
+            </button>
+            <button class="theme-btn" data-theme="theme-alexa">
+              <span class="theme-swatch alexa-swatch"></span>
+              <span>Alexa Echo</span>
+            </button>
+            <button class="theme-btn" data-theme="theme-aws">
+              <span class="theme-swatch aws-swatch"></span>
+              <span>AWS Console</span>
+            </button>
+            <button class="theme-btn" data-theme="theme-socratic">
+              <span class="theme-swatch socratic-swatch"></span>
+              <span>Classic Socratic</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sparring Rigor Level -->
+        <div class="studio-control-card">
+          <label class="studio-label">SPARRING RIGOR INTENSITY</label>
+          <div class="rigor-buttons-row">
+            <button class="rigor-btn" data-rigor="gentle">
+              <span class="rigor-icon">🌱</span>
+              <span>Gentle Inquiry</span>
+            </button>
+            <button class="rigor-btn active" data-rigor="standard">
+              <span class="rigor-icon">⚖️</span>
+              <span>Standard Socratic</span>
+            </button>
+            <button class="rigor-btn" data-rigor="ruthless">
+              <span class="rigor-icon">⚡</span>
+              <span>Ruthless Stress-Test</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Perspective Persona Filter -->
+        <div class="studio-control-card">
+          <label class="studio-label">COGNITIVE PERSPECTIVE LENS</label>
+          <div class="persona-buttons-row">
+            <button class="persona-btn active" data-persona="economist">
+              <span>📈 Empirical Economist</span>
+            </button>
+            <button class="persona-btn" data-persona="rationalist">
+              <span>🧠 First-Principles</span>
+            </button>
+            <button class="persona-btn" data-persona="contrarian">
+              <span>🚀 Contrarian Maverick</span>
+            </button>
+            <button class="persona-btn" data-persona="advocate">
+              <span>🛡️ Devil's Advocate</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Voice & Sound Engine Settings -->
+        <div class="studio-control-card">
+          <label class="studio-label">ALEXA VOICE & SOUND SYNTHESIS</label>
+          <div class="voice-sliders-row">
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>Speed</span>
+                <span id="voiceSpeedVal">1.0x</span>
+              </div>
+              <input type="range" id="voiceSpeedSlider" min="0.8" max="1.4" step="0.1" value="1.0">
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>Pitch</span>
+                <span id="voicePitchVal">1.0</span>
+              </div>
+              <input type="range" id="voicePitchSlider" min="0.8" max="1.2" step="0.1" value="1.0">
+            </div>
+
+            <div class="slider-group toggle-group">
+              <button id="toggleChimesBtn" class="sound-chime-toggle active" title="Play synthesized audio chimes on events">
+                <span>🔔 Echo Chimes: ON</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device & User Profile -->
+        <div class="studio-control-card full-width">
+          <label class="studio-label">DEVICE & PROFILE DOSSIER</label>
+          <div class="profile-switcher-row">
+            <div class="profile-chips">
+              <button class="profile-chip active" data-user="default-user">
+                <span>🏠 Default Echo Device (Living Room)</span>
+              </button>
+              <button class="profile-chip" data-user="executive-cto">
+                <span>💼 Enterprise CTO Profile</span>
+              </button>
+              <button class="profile-chip" data-user="policy-analyst">
+                <span>🏛️ Public Policy Analyst</span>
+              </button>
+            </div>
+            <div class="custom-user-input-wrap">
+              <input type="text" id="customUserIdInput" placeholder="Custom Device/User ID..." value="default-user">
+              <button id="applyUserIdBtn" class="classic-btn secondary small">Switch Profile</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Main Experience Grid -->
     <div class="layout-grid">
@@ -52,15 +192,19 @@
         
         <!-- Welcome Hero Banner -->
         <div class="socratic-banner">
-          <div class="banner-quote">
-            “The highest form of human intelligence is to observe oneself without judgment — and to test one’s certainty against the strongest counter-argument.”
+          <div class="banner-top-badge">
+            <span class="amazon-smile-icon">◡</span>
+            <span>AMAZON BEDROCK NEURAL REASONING</span>
           </div>
-          <div class="banner-attribution">— EPICTETUS ON CALIBRATION</div>
+          <div class="banner-quote">
+            “The anti-sycophant partner does not echo your certainty. It equips you with the strongest counter-argument so your convictions are tested, calibrated, and truly earned.”
+          </div>
+          <div class="banner-attribution">— ALEXA+ ANTI-SYCOPHANT ENGINE • STREAMABLE HTTP MCP PROTOCOL</div>
         </div>
 
         <!-- Presets Selection Bar -->
         <div class="preset-curator">
-          <div class="curator-label">CHOOSE A CONVICTION TO SPAR:</div>
+          <div class="curator-label">SELECT A HIGH-STAKES CONVICTION TO SPAR:</div>
           <div class="preset-scroll-track">
             <button class="preset-card active" data-text="Remote work is destroying company culture and productivity, and everyone must return to the office.">
               <span class="preset-icon">🏢</span>
@@ -74,6 +218,10 @@
               <span class="preset-icon">⚛️</span>
               <span class="preset-title">Nuclear Power Reality</span>
             </button>
+            <button class="preset-card" data-text="Enterprise engineering should standardize exclusively on single-cloud architecture rather than fragmented multi-cloud.">
+              <span class="preset-icon">☁️</span>
+              <span class="preset-title">Single vs Multi-Cloud</span>
+            </button>
             <button class="preset-card" data-text="Dynamic programming languages are obsolete for enterprise engineering; strict static typing is superior in every scenario.">
               <span class="preset-icon">💻</span>
               <span class="preset-title">Static vs Dynamic Code</span>
@@ -81,11 +229,11 @@
           </div>
         </div>
 
-        <!-- Opinion Input Chamber -->
+        <!-- Step I: Opinion Input Chamber -->
         <div class="chamber-card">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">I</span>
+              <span class="step-num">1</span>
               <span class="step-title">Articulate Your Conviction</span>
             </div>
             <div class="protocol-method-tag">tools/call: analyze_stance</div>
@@ -95,9 +243,9 @@
             <textarea id="statementInput" placeholder="Speak or type a strong conviction, moral judgment, or belief you hold with high certainty..." rows="3">Remote work is destroying company culture and productivity, and everyone must return to the office.</textarea>
             
             <div class="chamber-controls">
-              <button id="voiceInputBtn" class="mic-dictate-btn" title="Speak via microphone">
+              <button id="voiceInputBtn" class="mic-dictate-btn" title="Speak via microphone into Alexa+">
                 <span class="mic-wave">🎙️</span>
-                <span id="micLabel">Speak Opinion</span>
+                <span id="micLabel">Speak to Alexa</span>
               </button>
 
               <div class="primary-actions">
@@ -115,11 +263,11 @@
           </div>
         </div>
 
-        <!-- Dynamic Stance Diagnosis Card -->
+        <!-- Step II: Dynamic Stance Diagnosis Card -->
         <div class="chamber-card socratic-analysis-card" id="stanceCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">II</span>
+              <span class="step-num">2</span>
               <span class="step-title">Cognitive Stance Diagnosis</span>
             </div>
             <div class="topic-pill" id="stanceTopicTag">Topic</div>
@@ -159,11 +307,11 @@
           </div>
         </div>
 
-        <!-- The Steelman Counter-Case Card -->
+        <!-- Step III: The Steelmanned Counter-Case Card -->
         <div class="chamber-card socratic-steelman-card" id="steelmanCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">III</span>
+              <span class="step-num">3</span>
               <span class="step-title">The Steelmanned Counter-Case</span>
             </div>
             <div class="voice-compliance-badge">
@@ -171,9 +319,14 @@
             </div>
           </div>
 
-          <!-- Spoken Audio Bubble -->
+          <!-- Spoken Audio Bubble with Animated Alexa Visualizer -->
           <div class="auditory-chamber">
-            <div class="auditory-label">ALEXA+ SPOKEN SYNTHESIS:</div>
+            <div class="auditory-top-row">
+              <div class="auditory-label">ALEXA+ SPOKEN SYNTHESIS:</div>
+              <div class="alexa-speech-bars" id="alexaWaveform">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
             <div class="auditory-quote" id="spokenSayText">...</div>
           </div>
 
@@ -191,7 +344,7 @@
 
           <!-- Epistemic Question -->
           <div class="socratic-inquiry-box">
-            <div class="inquiry-symbol">⚜</div>
+            <div class="inquiry-symbol">💡</div>
             <div class="inquiry-body">
               <div class="inquiry-caption">SOCRATIC INQUIRY</div>
               <div class="inquiry-text" id="epistemicQuestionText">...</div>
@@ -226,11 +379,11 @@
           <div class="toast-reason" id="feedbackReasonText">...</div>
         </div>
 
-        <!-- Multi-Turn Debate Arena -->
+        <!-- Step IV: Multi-Turn Debate Arena -->
         <div class="chamber-card debate-arena-card" id="debateCard" style="display: none;">
           <div class="chamber-header">
             <div class="step-indicator">
-              <span class="step-num">IV</span>
+              <span class="step-num">4</span>
               <span class="step-title">Dialectical Sparring Arena</span>
             </div>
             <div class="session-pill" id="debateSessionTag">Session: Active</div>
@@ -258,7 +411,7 @@
       <!-- Right: Intellectual Honesty Dashboard & Wire Inspector -->
       <aside class="dashboard-sidebar">
         
-        <!-- Score & Ledger Card -->
+        <!-- Score & Ledger Card (Echo Show Monument) -->
         <div class="chamber-card score-dossier-card">
           <div class="chamber-header">
             <div class="dossier-title">Intellectual Honesty Ledger</div>
@@ -269,7 +422,8 @@
 
           <!-- Score Dial & Stats -->
           <div class="score-monument">
-            <div class="score-ring-wrap">
+            <div class="score-ring-wrap" id="scoreMonumentRing">
+              <div class="score-ring-glow"></div>
               <div class="score-num" id="honestyScoreValue">50.0</div>
               <div class="score-state" id="honestyStatusLabel">BALANCED</div>
             </div>
@@ -300,7 +454,7 @@
           <div class="audit-trail-section">
             <div class="trail-header">
               <span class="trail-title">Append-Only Audit Trail</span>
-              <span class="tamper-tag">Tamper-Proof</span>
+              <span class="tamper-tag">Tamper-Proof Ledger</span>
             </div>
             <div class="trail-feed" id="ledgerEventsStream">
               <div class="empty-feed">No transactions recorded yet. State a conviction to initiate calibration.</div>
@@ -324,7 +478,7 @@
           <div class="trace-terminal" id="wireTraceConsole">
             <div class="terminal-line system">
               <span class="term-time">[READY]</span>
-              <span>Streamable HTTP MCP router active. Ready for tools/call.</span>
+              <span>Streamable HTTP MCP router active on port 3000. Ready for tools/call.</span>
             </div>
           </div>
         </div>
