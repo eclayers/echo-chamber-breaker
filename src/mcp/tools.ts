@@ -9,11 +9,18 @@ import type {
   ToolResultPayload,
 } from "../types/index.js";
 
+export function enforceVoiceBrevity(say: string, maxWords: number = 40): string {
+  const words = say.trim().split(/\s+/);
+  if (words.length <= maxWords) return say;
+  return words.slice(0, maxWords - 1).join(" ") + "...";
+}
+
 function formatToolResponse<T>(say: string, structuredContent: T, mode: "mock" | "bedrock"): {
   content: { type: "text"; text: string }[];
 } {
+  const boundedSay = enforceVoiceBrevity(say, 40);
   const payload: ToolResultPayload<T> = {
-    say,
+    say: boundedSay,
     structuredContent,
     meta: {
       timestamp: new Date().toISOString(),

@@ -58,8 +58,24 @@
 
 ---
 
+---
+
+### 🧪 Optional Bonus / Judge Stress-Test: Dynamic Generalization (Live Q&A)
+- **Concept**: When judges ask: *"Does this only work on pre-scripted prompts?"*
+- **Action**:
+  1. Highlight or type an arbitrary or inflammatory statement into the input box (e.g., historical/civilizational conflicts, esoteric tech stack debates, or custom philosophical views).
+  2. Click **`⚡ Steelman Opposing View`**.
+  3. Show how the input-to-tool pipeline immediately synchronizes:
+     - Real-time stance diagnosis updates with no stale remote-work remnants.
+     - The steelman produces a charitable, non-strawman counter-case separating foundational contributions from modern grievances.
+     - Spoken summary is strictly under 40 words for Alexa compliance.
+  4. Click **`↺ Reset Ledger (50.0)`** to reset the profile score and ledger back to baseline at any time.
+
+---
+
 ## 💡 Quick Tips for Recording
 1. **Resolution**: 1920x1080 at 100% zoom.
 2. **Audio**: Ensure speaker volume is moderate so the browser's TTS speech is audible alongside your voice.
 3. **Cursor**: Use smooth, deliberate mouse movements.
 4. **Recording Tools**: OBS Studio or Windows Snipping Tool (`Win + Shift + R`).
+5. **Score Reset**: If you practiced before recording, click `↺ Reset Ledger (50.0)` at the top of the Honesty Ledger to start at a pristine 50.0 score.

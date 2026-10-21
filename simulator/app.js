@@ -536,7 +536,10 @@ async function handleSteelman() {
 }
 
 // Action: Record Engagement (Dismiss, Concede, Submit)
+let isEngaging = false;
+
 async function handleEngagement(mode) {
+  if (isEngaging) return;
   const reply = engagementReplyInput.value.trim();
   let userReplyText = reply;
 
@@ -553,6 +556,11 @@ async function handleEngagement(mode) {
       return;
     }
   }
+
+  isEngaging = true;
+  dismissChallengeBtn.disabled = true;
+  concedePointBtn.disabled = true;
+  submitEngagementBtn.disabled = true;
 
   try {
     const res = await callTool("record_engagement", {
@@ -578,6 +586,42 @@ async function handleEngagement(mode) {
     feedbackCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (err) {
     console.error("Engagement recording error:", err);
+  } finally {
+    isEngaging = false;
+    dismissChallengeBtn.disabled = false;
+    concedePointBtn.disabled = false;
+    submitEngagementBtn.disabled = false;
+  }
+}
+
+// Action: Reset Ledger Baseline
+async function handleResetLedger() {
+  const confirmReset = confirm("Reset your Intellectual Honesty score and baseline back to 50.0 (Balanced)?");
+  if (!confirmReset) return;
+
+  const resetBtn = document.getElementById("resetLedgerBtn");
+  if (resetBtn) {
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Resetting...";
+  }
+
+  try {
+    await callTool("calibrate_baseline", {
+      userId: currentUserId,
+      baselineScore: 50.0,
+      reason: "Manual baseline calibration to 50.0",
+    });
+    playEchoChime("concession");
+    if (feedbackCard) feedbackCard.style.display = "none";
+    await refreshHonestyDashboard();
+    logTrace("system", `Honesty ledger reset to baseline 50.0 for user "${currentUserId}".`);
+  } catch (err) {
+    console.error("Failed to reset ledger:", err);
+  } finally {
+    if (resetBtn) {
+      resetBtn.disabled = false;
+      resetBtn.innerHTML = "<span>↺ Reset Ledger (50.0)</span>";
+    }
   }
 }
 
@@ -775,6 +819,8 @@ function initializeEventListeners() {
   concedePointBtn.addEventListener("click", () => handleEngagement("concede"));
   submitEngagementBtn.addEventListener("click", () => handleEngagement("submit"));
   proactiveChallengeBtn.addEventListener("click", handleProactiveChallenge);
+  const resetLedgerBtn = document.getElementById("resetLedgerBtn");
+  if (resetLedgerBtn) resetLedgerBtn.addEventListener("click", handleResetLedger);
   viewBenchmarkBtn.addEventListener("click", handleViewBenchmark);
   closeBenchmarkModalBtn.addEventListener("click", () => (benchmarkModal.style.display = "none"));
 
