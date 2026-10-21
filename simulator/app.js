@@ -437,6 +437,16 @@ async function refreshHonestyDashboard() {
   }
 }
 
+// Guided 4-Step Journey Stepper
+function updateStepper(stepNumber) {
+  for (let i = 1; i <= 4; i++) {
+    const node = document.getElementById(`stepNode${i}`);
+    if (node) {
+      node.classList.toggle("active", i === stepNumber);
+    }
+  }
+}
+
 // Action: Analyze Stance
 async function handleAnalyzeStance() {
   const statement = statementInput.value.trim();
@@ -479,6 +489,7 @@ async function handleAnalyzeStance() {
       if (debateCardEl) debateCardEl.style.display = "none";
     }
 
+    updateStepper(2);
     stanceCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } finally {
     analyzeStanceBtn.disabled = false;
@@ -528,10 +539,16 @@ async function handleSteelman() {
     if (debateCardEl) debateCardEl.style.display = "none";
     if (feedbackCard) feedbackCard.style.display = "none";
 
+    updateStepper(3);
     steelmanCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } finally {
     steelmanBtn.disabled = false;
-    steelmanBtn.innerHTML = "<span>⚡ Steelman Opposing View</span>";
+    steelmanBtn.innerHTML = `
+      <div class="btn-text-block">
+        <span class="btn-headline">⚡ Steelman Opposing View</span>
+        <span class="btn-subtext">Alexa Audio (&lt; 40 words) • 3 Pillars</span>
+      </div>
+    `;
   }
 }
 
@@ -583,6 +600,7 @@ async function handleEngagement(mode) {
 
     engagementReplyInput.value = "";
     await refreshHonestyDashboard();
+    updateStepper(4);
     feedbackCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (err) {
     console.error("Engagement recording error:", err);
@@ -797,6 +815,13 @@ function setupCustomizationStudio() {
     });
   });
 
+  if (closeStudioBtn && customizationStudio) {
+    closeStudioBtn.addEventListener("click", () => {
+      customizationStudio.style.display = "none";
+      if (toggleStudioBtn) toggleStudioBtn.classList.remove("active-studio");
+    });
+  }
+
   if (applyUserIdBtn && customUserIdInput) {
     applyUserIdBtn.addEventListener("click", async () => {
       const val = customUserIdInput.value.trim();
@@ -823,6 +848,35 @@ function initializeEventListeners() {
   if (resetLedgerBtn) resetLedgerBtn.addEventListener("click", handleResetLedger);
   viewBenchmarkBtn.addEventListener("click", handleViewBenchmark);
   closeBenchmarkModalBtn.addEventListener("click", () => (benchmarkModal.style.display = "none"));
+
+  // How It Works button
+  const toggleHowItWorksBtn = document.getElementById("toggleHowItWorksBtn");
+  const howItWorksDeck = document.getElementById("howItWorksDeck");
+  if (toggleHowItWorksBtn && howItWorksDeck) {
+    toggleHowItWorksBtn.addEventListener("click", () => {
+      howItWorksDeck.scrollIntoView({ behavior: "smooth", block: "center" });
+      howItWorksDeck.style.borderColor = "var(--accent-primary)";
+      howItWorksDeck.style.boxShadow = "0 0 20px var(--accent-primary-glow)";
+      setTimeout(() => {
+        howItWorksDeck.style.borderColor = "";
+        howItWorksDeck.style.boxShadow = "";
+      }, 1800);
+    });
+  }
+
+  // Collapsible wire trace toggle
+  const traceToggleHeader = document.getElementById("traceToggleHeader");
+  const wireTraceConsole = document.getElementById("wireTraceConsole");
+  const traceToggleIndicator = document.getElementById("traceToggleIndicator");
+  if (traceToggleHeader && wireTraceConsole) {
+    traceToggleHeader.addEventListener("click", () => {
+      const isHidden = wireTraceConsole.style.display === "none";
+      wireTraceConsole.style.display = isHidden ? "block" : "none";
+      if (traceToggleIndicator) {
+        traceToggleIndicator.textContent = isHidden ? "[Collapse]" : "[Click to Toggle]";
+      }
+    });
+  }
 
   // Debate elements & listeners
   const startDebateBtn = document.getElementById("startDebateBtn");
@@ -988,6 +1042,7 @@ Verified append-only tamper-proof ledger via Model Context Protocol.
 
   // Typing input listener on statementInput
   statementInput.addEventListener("input", () => {
+    updateStepper(1);
     const currentVal = statementInput.value.trim();
     document.querySelectorAll(".preset-card").forEach((card) => {
       if (card.getAttribute("data-text") !== currentVal) {

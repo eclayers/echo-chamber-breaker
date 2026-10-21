@@ -37,10 +37,16 @@
           <span class="status-label" id="mcpStatusText">MCP Streamable HTTP</span>
         </div>
 
-        <!-- Customizations Studio Toggle -->
-        <button id="toggleStudioBtn" class="classic-nav-btn active-studio" title="Open Customization Deck">
+        <!-- How It Works Guided Tour Toggle -->
+        <button id="toggleHowItWorksBtn" class="classic-nav-btn" title="View the 4-step anti-sycophant pipeline">
+          <span class="btn-icon">💡</span>
+          <span>How It Works</span>
+        </button>
+
+        <!-- Customizations Studio Toggle (Collapsed by default) -->
+        <button id="toggleStudioBtn" class="classic-nav-btn" title="Open Customization Deck (Themes, Persona, Voice)">
           <span class="btn-icon">⚙️</span>
-          <span>Customizations</span>
+          <span>Settings</span>
         </button>
         
         <!-- Voice Toggle -->
@@ -61,14 +67,17 @@
       </div>
     </header>
 
-    <!-- Interactive Customization Studio (Amazon / AWS Configuration Deck) -->
-    <section class="customization-studio" id="customizationStudio">
+    <!-- Interactive Customization Studio (Amazon / AWS Configuration Deck - Collapsed by default) -->
+    <section class="customization-studio" id="customizationStudio" style="display: none;">
       <div class="studio-header">
         <div class="studio-title">
           <span class="studio-icon">🎛️</span>
           <span>AMAZON BEDROCK & ALEXA+ CUSTOMIZATION STUDIO</span>
         </div>
-        <div class="studio-subtitle">Tune cognitive rigor, dialectical perspective, voice synthesis, device persona, and visual theme</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="studio-subtitle">Tune cognitive rigor, dialectical perspective, voice synthesis, device persona, and visual theme</div>
+          <button id="closeStudioBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;" title="Close Settings">✕</button>
+        </div>
       </div>
 
       <div class="studio-grid">
@@ -202,9 +211,50 @@
           <div class="banner-attribution">— ALEXA+ ANTI-SYCOPHANT ENGINE • STREAMABLE HTTP MCP PROTOCOL</div>
         </div>
 
+        <!-- How It Works: Guided 4-Step Dialectical Pipeline -->
+        <div class="workflow-stepper-deck" id="howItWorksDeck">
+          <div class="stepper-header">
+            <span class="stepper-label">🧭 HOW IT WORKS — THE 4-STEP ANTI-SYCOPHANT JOURNEY</span>
+            <span class="stepper-sub">Powered by Amazon Bedrock &amp; Alexa+ Model Context Protocol</span>
+          </div>
+          <div class="stepper-grid">
+            <div class="stepper-node active" id="stepNode1">
+              <div class="node-number">1</div>
+              <div class="node-content">
+                <div class="node-title">State Conviction</div>
+                <div class="node-desc">Choose a topic or express an unexamined belief with high certainty</div>
+              </div>
+            </div>
+            <div class="stepper-node" id="stepNode2">
+              <div class="node-number">2</div>
+              <div class="node-content">
+                <div class="node-title">Cognitive Diagnosis</div>
+                <div class="node-desc">AI calculates certainty, emotion, fallacies, and 3 unstated blind spots</div>
+              </div>
+            </div>
+            <div class="stepper-node" id="stepNode3">
+              <div class="node-number">3</div>
+              <div class="node-content">
+                <div class="node-title">Steelman Counter-Case</div>
+                <div class="node-desc">Alexa presents the strongest opposing argument (&lt; 40 words) with evidence</div>
+              </div>
+            </div>
+            <div class="stepper-node" id="stepNode4">
+              <div class="node-number">4</div>
+              <div class="node-content">
+                <div class="node-title">Honesty Ledger</div>
+                <div class="node-desc">Concede or rebut to build your private tamper-proof Epistemic Radar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Presets Selection Bar -->
         <div class="preset-curator">
-          <div class="curator-label">SELECT A HIGH-STAKES CONVICTION TO SPAR:</div>
+          <div class="curator-label">
+            <span>💡 QUICK START: SELECT A CONVICTION TO SPAR</span>
+            <span style="font-weight: 400; color: #94a3b8; font-size: 11px;">(or type your own belief below)</span>
+          </div>
           <div class="preset-scroll-track">
             <button class="preset-card active" data-text="Remote work is destroying company culture and productivity, and everyone must return to the office.">
               <span class="preset-icon">🏢</span>
@@ -234,9 +284,12 @@
           <div class="chamber-header">
             <div class="step-indicator">
               <span class="step-num">1</span>
-              <span class="step-title">Articulate Your Conviction</span>
+              <div>
+                <span class="step-title">Articulate Your Conviction</span>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Enter an unexamined belief or conviction you want challenged</div>
+              </div>
             </div>
-            <div class="protocol-method-tag">tools/call: analyze_stance</div>
+            <div class="protocol-method-tag">tools/call: analyze_stance &amp; steelman</div>
           </div>
 
           <div class="chamber-input-wrap">
@@ -249,16 +302,29 @@
               </button>
 
               <div class="primary-actions">
-                <button id="analyzeStanceBtn" class="classic-btn secondary">
-                  <span>Analyze Stance</span>
+                <button id="steelmanBtn" class="classic-btn primary glow-btn" title="Generate the strongest opposing argument and voice summary">
+                  <div class="btn-text-block">
+                    <span class="btn-headline">⚡ Steelman Opposing View</span>
+                    <span class="btn-subtext">Alexa Audio (&lt; 40 words) • 3 Pillars</span>
+                  </div>
                 </button>
-                <button id="steelmanBtn" class="classic-btn primary">
-                  <span>⚡ Steelman Opposing View</span>
+                <button id="analyzeStanceBtn" class="classic-btn secondary" title="Detect conviction certainty and cognitive blind spots">
+                  <div class="btn-text-block">
+                    <span class="btn-headline">🔍 Analyze Stance</span>
+                    <span class="btn-subtext">Diagnosis &amp; Blind Spots</span>
+                  </div>
                 </button>
-                <button id="startDebateBtn" class="classic-btn accent">
-                  <span>⚔️ Multi-Turn Debate</span>
+                <button id="startDebateBtn" class="classic-btn accent" title="Initiate multi-turn dialectical sparring arena">
+                  <div class="btn-text-block">
+                    <span class="btn-headline">⚔️ Multi-Turn Debate</span>
+                    <span class="btn-subtext">Live Sparring Arena</span>
+                  </div>
                 </button>
               </div>
+            </div>
+
+            <div class="function-explainer-bar">
+              <span>💡 <strong>Button Functions:</strong> Click <strong>Steelman</strong> to hear Alexa's charitable counter-argument; click <strong>Analyze Stance</strong> to inspect conviction certainty; or click <strong>Multi-Turn Debate</strong> to spar turn-by-turn.</span>
             </div>
           </div>
         </div>
@@ -353,18 +419,28 @@
 
           <!-- Engagement Sparring Action -->
           <div class="engagement-response-chamber">
-            <div class="response-title">HOW DO YOU RESPOND TO THIS COUNTER-CASE?</div>
-            <textarea id="engagementReplyInput" placeholder="Grapple directly with the opposing trade-offs, acknowledge valid points, or state your counter-rebuttal..." rows="2"></textarea>
+            <div class="response-title">HOW DO YOU ENGAGE WITH THIS COUNTER-ARGUMENT?</div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 8px;">Your response updates your private Intellectual Honesty Ledger and Epistemic Radar in real time:</div>
+            <textarea id="engagementReplyInput" placeholder="Grapple directly with the opposing trade-offs, acknowledge valid points, or articulate your counter-rebuttal..." rows="2"></textarea>
             
             <div class="response-actions-row">
               <button id="dismissChallengeBtn" class="spar-action-btn dismiss" title="Dismiss without addressing trade-offs">
-                <span>✕ Dismiss (-3.0 pts)</span>
+                <div class="btn-text-block">
+                  <span class="btn-headline">✕ Dismiss (-3.0 pts)</span>
+                  <span class="btn-subtext">Ignore counter-argument without reason</span>
+                </div>
               </button>
               <button id="concedePointBtn" class="spar-action-btn concede" title="Acknowledge valid counter-points">
-                <span>🤝 Concede Valid Point (+8.5 pts)</span>
+                <div class="btn-text-block">
+                  <span class="btn-headline">🤝 Concede Valid Point (+8.5 pts)</span>
+                  <span class="btn-subtext">Acknowledge trade-offs &amp; update viewpoint</span>
+                </div>
               </button>
               <button id="submitEngagementBtn" class="spar-action-btn submit" title="Grapple with reasoned counter-argument">
-                <span>💬 Submit Counter-Rebuttal (+4.5 pts)</span>
+                <div class="btn-text-block">
+                  <span class="btn-headline">💬 Submit Rebuttal (+4.5 pts)</span>
+                  <span class="btn-subtext">Engage with reasoned structural arguments</span>
+                </div>
               </button>
             </div>
           </div>
@@ -414,10 +490,13 @@
         <!-- Score & Ledger Card (Echo Show Monument) -->
         <div class="chamber-card score-dossier-card">
           <div class="chamber-header">
-            <div class="dossier-title">Intellectual Honesty Ledger</div>
+            <div>
+              <div class="dossier-title">Intellectual Honesty Ledger</div>
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Measures willingness to update views when presented with counter-evidence</div>
+            </div>
             <div class="dossier-actions" style="display: flex; gap: 8px; align-items: center;">
               <button id="resetLedgerBtn" class="classic-btn secondary small" style="padding: 4px 10px; font-size: 11px;" title="Reset baseline score to 50.0">
-                <span>↺ Reset Ledger (50.0)</span>
+                <span>↺ Reset (50.0)</span>
               </button>
               <button id="proactiveChallengeBtn" class="summon-friction-btn" title="Receive proactive intellectual friction">
                 <span>⚡ Challenge Me</span>
@@ -452,6 +531,7 @@
           <!-- Epistemic Radar Chart -->
           <div class="radar-box">
             <div class="radar-title">5D Epistemic Calibration Radar</div>
+            <div style="font-size: 10px; color: #94a3b8; text-align: center; margin-bottom: 4px;">Openness • Rigor • Rebuttal • Humility • Consistency</div>
             <svg id="radarSvg" viewBox="0 0 300 240" class="radar-canvas"></svg>
           </div>
 
@@ -467,12 +547,13 @@
           </div>
         </div>
 
-        <!-- Live MCP Wire Trace Inspector -->
+        <!-- Live MCP Wire Trace Inspector (Collapsible for Clean UX) -->
         <div class="chamber-card trace-dossier-card">
-          <div class="trace-bar-header">
+          <div class="trace-bar-header" id="traceToggleHeader" style="cursor: pointer;" title="Click to show/hide raw JSON-RPC protocol wire trace">
             <div class="trace-label">
               <span class="live-dot"></span>
-              <span>LIVE MCP PROTOCOL TRACE</span>
+              <span>LIVE MCP WIRE TRACE</span>
+              <span id="traceToggleIndicator" style="font-size: 10px; color: #64748b; font-weight: 500;">[Click to Toggle]</span>
             </div>
             <div class="trace-right">
               <span class="protocol-version-pill">JSON-RPC 2.0</span>
@@ -480,7 +561,7 @@
             </div>
           </div>
 
-          <div class="trace-terminal" id="wireTraceConsole">
+          <div class="trace-terminal" id="wireTraceConsole" style="display: none; max-height: 140px; overflow-y: auto;">
             <div class="terminal-line system">
               <span class="term-time">[READY]</span>
               <span>Streamable HTTP MCP router active on port 3000. Ready for tools/call.</span>
