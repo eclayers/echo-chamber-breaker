@@ -470,6 +470,15 @@ async function handleAnalyzeStance() {
     }
 
     coreAssumptionText.textContent = stance.coreAssumption || "No unstated assumptions detected.";
+
+    // Guard against content mismatch: if steelmanCard or debateCard were displaying an older statement, hide them
+    if (activeSteelman && activeSteelman.originalClaim !== statement) {
+      steelmanCard.style.display = "none";
+      if (feedbackCard) feedbackCard.style.display = "none";
+      const debateCardEl = document.getElementById("debateCard");
+      if (debateCardEl) debateCardEl.style.display = "none";
+    }
+
     stanceCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } finally {
     analyzeStanceBtn.disabled = false;
@@ -490,9 +499,8 @@ async function handleSteelman() {
   steelmanBtn.innerHTML = "<span>⚡ Generating Steelman...</span>";
 
   try {
-    if (stanceCard.style.display === "none") {
-      handleAnalyzeStance();
-    }
+    // ALWAYS synchronize Stance Diagnosis for the CURRENT statement first!
+    await handleAnalyzeStance();
 
     const res = await callTool("steelman", { statement, userId: currentUserId });
     const steelman = res.structuredContent;
@@ -514,6 +522,12 @@ async function handleSteelman() {
     }
 
     epistemicQuestionText.textContent = steelman.epistemicQuestion;
+
+    // Reset debate arena and feedback if they belonged to an earlier statement
+    const debateCardEl = document.getElementById("debateCard");
+    if (debateCardEl) debateCardEl.style.display = "none";
+    if (feedbackCard) feedbackCard.style.display = "none";
+
     steelmanCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } finally {
     steelmanBtn.disabled = false;
@@ -787,6 +801,11 @@ function initializeEventListeners() {
       startDebateBtn.textContent = "Initiating...";
 
       try {
+        // ALWAYS synchronize Stance and Steelman cards so every card on screen reflects this exact statement
+        if (stanceCard.style.display === "none" || !activeSteelman || activeSteelman.originalClaim !== statement) {
+          await handleSteelman();
+        }
+
         const res = await callTool("start_debate", { userId: currentUserId, statement });
         const content = res.structuredContent;
         activeDebateId = content.session.sessionId;
@@ -919,6 +938,16 @@ Verified append-only tamper-proof ledger via Model Context Protocol.
   voiceInputBtn.addEventListener("click", () => {
     if (isRecording) stopRecording();
     else startRecording();
+  });
+
+  // Typing input listener on statementInput
+  statementInput.addEventListener("input", () => {
+    const currentVal = statementInput.value.trim();
+    document.querySelectorAll(".preset-card").forEach((card) => {
+      if (card.getAttribute("data-text") !== currentVal) {
+        card.classList.remove("active");
+      }
+    });
   });
 
   // Presets
