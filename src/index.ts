@@ -21,9 +21,14 @@ app.use(cors());
 app.use(express.json());
 
 // Serve simulator static assets
-const simulatorPath = path.resolve(__dirname, "../simulator");
+const simulatorPath = path.resolve(process.cwd(), "simulator");
 app.use("/simulator", express.static(simulatorPath));
 app.use("/static", express.static(simulatorPath));
+app.use(express.static(simulatorPath));
+
+app.get(["/simulator", "/simulator/*"], (_req, res) => {
+  res.sendFile(path.join(simulatorPath, "index.html"));
+});
 
 // Health & Status endpoint
 app.get("/health", async (_req, res) => {
@@ -112,9 +117,9 @@ app.post("/alexa", async (req, res) => {
   }
 });
 
-// Root redirects or displays landing summary
+// Root serves simulator index.html directly
 app.get("/", (_req, res) => {
-  res.redirect("/simulator");
+  res.sendFile(path.join(simulatorPath, "index.html"));
 });
 
 const server = app.listen(PORT, HOST, () => {
