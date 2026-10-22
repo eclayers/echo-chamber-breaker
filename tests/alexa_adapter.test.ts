@@ -108,4 +108,35 @@ describe("Alexa+ Voice Skill Adapter Suite", () => {
     expect(res.response.outputSpeech.ssml).toContain("Intellectual Honesty Score is");
     expect(res.response.card?.title).toBe("Intellectual Honesty Report");
   });
+
+  it("handles greeting in SteelmanIntent gracefully without inventing false convictions", async () => {
+    const req: AlexaRequestBody = {
+      version: "1.0",
+      session: {
+        sessionId: "session-5",
+        application: { applicationId: "amzn1.echo-sdk-ams.app.123" },
+        user: { userId: "user-alexa-test" },
+        new: false,
+      },
+      request: {
+        type: "IntentRequest",
+        requestId: "req-5",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "SteelmanIntent",
+          slots: {
+            statement: {
+              name: "statement",
+              value: "Hello Alexa",
+            },
+          },
+        },
+      },
+    };
+
+    const res = await handleAlexaRequest(req);
+    expect(res.response.outputSpeech.ssml).toContain("<speak>");
+    expect(res.response.outputSpeech.ssml).toContain("Welcome to Echo Chamber Breaker");
+    expect(res.sessionAttributes?.lastStatement).toBeUndefined();
+  });
 });

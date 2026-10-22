@@ -120,6 +120,20 @@ export async function handleAlexaRequest(body: AlexaRequestBody): Promise<AlexaR
     if (intentName === "SteelmanIntent" || intentName === "AnalyzeStanceIntent") {
       const statement = req.intent.slots?.statement?.value || "General opinion";
       const stance = await cognitiveAdapter.analyzeStance(statement);
+
+      // Normative Stance Gating: Handle greetings, questions, or empty statements cleanly
+      if (!stance.is_stance) {
+        const speech = stance.say || "Please articulate an opinion or conviction you hold with high certainty, and I will present the opposing case.";
+        return buildAlexaResponse(
+          speech,
+          "What belief or topic would you like to spar on today?",
+          "Echo Chamber Breaker",
+          stance.calibrationNotes || speech,
+          false,
+          sessionAttrs
+        );
+      }
+
       const steelman = await cognitiveAdapter.generateSteelman(statement, stance);
 
       // Save active steelman into session attributes for multi-turn reply evaluation
