@@ -439,6 +439,8 @@ async function refreshHonestyDashboard() {
         item.appendChild(delta);
         ledgerEventsStream.appendChild(item);
       }
+    }
+
     // Render LLM Epistemic Diagnosis
     const diagnosisList = document.getElementById("diagnosisInsightsList");
     const langBadge = document.getElementById("reportLangBadge");
