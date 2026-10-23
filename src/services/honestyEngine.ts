@@ -1,4 +1,5 @@
 import { sessionStore } from "./sessionStore.js";
+import { cognitiveAdapter } from "./bedrockAdapter.js";
 import type {
   HonestyEvent,
   HonestyProfile,
@@ -33,6 +34,7 @@ export interface HonestyReportPayload {
     eventType: EventType;
   }[];
   summaryInsights: string[];
+  detectedLanguage?: string;
 }
 
 export class HonestyEngine {
@@ -211,7 +213,7 @@ export class HonestyEngine {
     });
   }
 
-  async getHonestyReport(userId: string): Promise<HonestyReportPayload> {
+  async getHonestyReport(userId: string, language: string = "en"): Promise<HonestyReportPayload> {
     const profile = await sessionStore.getProfile(userId);
     const events = await sessionStore.getEvents(userId, 15);
 
@@ -242,21 +244,23 @@ export class HonestyEngine {
       Math.max(15, Math.min(profile.totalChallenges * 15, 100))
     );
 
-    const summaryInsights: string[] = [];
-    if (profile.totalChallenges === 0) {
-      summaryInsights.push("No challenges recorded yet. Begin by analyzing a strong opinion to calibrate your score.");
-    } else {
-      if (profile.engagementRate >= 0.75) {
-        summaryInsights.push("High willingness to engage with friction rather than retreating into agreement.");
-      } else {
-        summaryInsights.push("Elevated dismissal rate detected. Stepping into opposing premises will elevate your score.");
-      }
-
-      if (profile.concessionCount > 0) {
-        summaryInsights.push(`Recorded ${profile.concessionCount} genuine belief updates upon confronting superior evidence.`);
-      } else {
-        summaryInsights.push("Zero concessions recorded so far; explore whether your convictions leave room for epistemic uncertainty.");
-      }
+    // Dynamic LLM Epistemic Diagnostic Synthesis
+    let summaryInsights: string[];
+    try {
+      summaryInsights = await cognitiveAdapter.generateEpistemicReport(
+        profile,
+        events,
+        language
+      );
+    } catch {
+      summaryInsights = [
+        profile.engagementRate >= 0.75
+          ? "High willingness to engage with friction rather than retreating into agreement."
+          : "Elevated dismissal rate detected. Stepping into opposing premises will elevate your score.",
+        profile.concessionCount > 0
+          ? `Recorded ${profile.concessionCount} genuine belief updates upon confronting superior evidence.`
+          : "Zero concessions recorded so far; explore whether your convictions leave room for epistemic uncertainty.",
+      ];
     }
 
     return {
@@ -284,6 +288,7 @@ export class HonestyEngine {
         eventType: e.eventType,
       })),
       summaryInsights,
+      detectedLanguage: language,
     };
   }
 }

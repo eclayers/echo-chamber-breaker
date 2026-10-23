@@ -492,6 +492,38 @@ async function runStressTest() {
   }
 
   // -------------------------------------------------------------------------
+  // PHASE 13: Multilingual LLM Understanding & Epistemic Synthesis
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 13: Testing Multilingual Dialectics & LLM Diagnosis (ES, FR, DE, HI)...");
+  {
+    // Spanish Stance & Steelman
+    const { payload: esSteelman } = await callTool("steelman", {
+      statement: "La energía nuclear es peligrosa y debería ser prohibida.",
+      userId: "multilingual-tester",
+    });
+    assert(esSteelman.structuredContent.is_stance === true, "Spanish statement recognized as valid stance");
+    assert(esSteelman.structuredContent.opposingThesis.includes("mecanismos fundamentales") || esSteelman.structuredContent.opposingThesis.length > 20, "Spanish steelman generated");
+    const esWords = esSteelman.say.trim().split(/\s+/).length;
+    assert(esWords <= 40, `Spanish voice brevity enforced (${esWords} words <= 40)`);
+
+    // French Steelman
+    const { payload: frSteelman } = await callTool("steelman", {
+      statement: "Le télétravail détruit la créativité et la culture d'entreprise.",
+      userId: "multilingual-tester",
+    });
+    assert(frSteelman.structuredContent.is_stance === true, "French statement recognized as valid stance");
+
+    // Dynamic Multilingual LLM Honesty Reports
+    const { payload: esReport } = await callTool("honesty_report", {
+      userId: "multilingual-tester",
+      language: "es",
+    });
+    assert(esReport.structuredContent.detectedLanguage === "es", "Honesty report generated in Spanish");
+    assert(esReport.structuredContent.summaryInsights.length >= 2, "Report includes dynamic multilingual insights");
+    console.log(`     Spanish Diagnosis sample: "${esReport.structuredContent.summaryInsights[0]}"`);
+  }
+
+  // -------------------------------------------------------------------------
   // FINAL REPORT
   // -------------------------------------------------------------------------
   console.log("\n=======================================================================");

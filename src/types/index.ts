@@ -45,6 +45,7 @@ export interface StanceAnalysis {
   ml_features?: { feature: string; weight: number }[];
   calibrated_probability?: number;
   matched_domain?: string;
+  detectedLanguage?: string;
   reasoning_chain?: EpistemicReasoningChain;
 }
 
@@ -61,6 +62,7 @@ export interface SteelmanResponse {
   say: string; // Voice-ready string: crisp, punchy, <= 40 words
   originalClaim: string;
   opposingThesis: string;
+  detectedLanguage?: string;
   foundational_counter_thesis?: string; // one clear opposing thesis sentence (spec 4.2)
   coreArguments: {
     premise: string;

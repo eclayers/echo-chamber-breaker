@@ -322,12 +322,13 @@ export function registerTools(server: McpServer): void {
   // 7. honesty_report
   server.tool(
     "honesty_report",
-    "Get full longitudinal Intellectual Honesty report including score, radar metrics, and recent history.",
+    "Get full longitudinal Intellectual Honesty report including score, radar metrics, LLM-generated epistemic diagnosis, and recent history.",
     {
       userId: z.string().default("default-user").describe("The user ID."),
+      language: z.string().optional().describe("Optional ISO language code or name (e.g. 'es', 'fr', 'de', 'hi', 'en') for dynamic multilingual report generation."),
     },
-    async ({ userId }) => {
-      const report = await honestyEngine.getHonestyReport(userId);
+    async ({ userId, language }) => {
+      const report = await honestyEngine.getHonestyReport(userId, language);
       const say = `Your Intellectual Honesty Score is ${report.currentScore}, categorized as ${report.scoreStatus}. Engagement rate is ${report.engagementRatePercent} percent.`;
       return formatToolResponse(say, report, cognitiveAdapter.getMode());
     }

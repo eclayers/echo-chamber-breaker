@@ -439,6 +439,20 @@ async function refreshHonestyDashboard() {
         item.appendChild(delta);
         ledgerEventsStream.appendChild(item);
       }
+    // Render LLM Epistemic Diagnosis
+    const diagnosisList = document.getElementById("diagnosisInsightsList");
+    const langBadge = document.getElementById("reportLangBadge");
+    if (diagnosisList && content.summaryInsights && content.summaryInsights.length > 0) {
+      diagnosisList.innerHTML = "";
+      for (const insight of content.summaryInsights) {
+        const li = document.createElement("li");
+        li.textContent = insight;
+        li.style.marginBottom = "6px";
+        diagnosisList.appendChild(li);
+      }
+      if (langBadge && content.detectedLanguage) {
+        langBadge.textContent = `Lang: ${content.detectedLanguage.toUpperCase()}`;
+      }
     }
   } catch (err) {
     console.error("Failed to refresh dashboard:", err);

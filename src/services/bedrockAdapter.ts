@@ -17,7 +17,70 @@ export interface CognitiveAdapter {
   generateSteelman(statement: string, stance?: StanceAnalysis): Promise<SteelmanResponse>;
   evaluateEngagement(userReply: string, steelman: SteelmanResponse): Promise<EngagementAssessment>;
   generateProactiveChallenge(history: HonestyProfile): Promise<ProactiveChallenge>;
+  generateEpistemicReport(
+    profile: HonestyProfile,
+    events: import("../types/index.js").HonestyEvent[],
+    targetLanguage?: string
+  ): Promise<string[]>;
   getMode(): "mock" | "bedrock";
+}
+
+/**
+ * High-precision multilingual detector.
+ * Identifies Unicode scripts (Devanagari, CJK, Cyrillic, Arabic) and European languages
+ * (Spanish, French, German, Italian, Portuguese, English) via lexical distributions.
+ */
+export function detectLanguage(text: string): { code: string; name: string } {
+  if (!text) return { code: "en", name: "English" };
+  const str = text.trim();
+
+  // Script-based detection
+  if (/[\u0900-\u097F]/.test(str)) return { code: "hi", name: "Hindi" };
+  if (/[\u4E00-\u9FFF]/.test(str)) {
+    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(str)) return { code: "ja", name: "Japanese" };
+    return { code: "zh", name: "Mandarin Chinese" };
+  }
+  if (/[\u3040-\u309F\u30A0-\u30FF]/.test(str)) return { code: "ja", name: "Japanese" };
+  if (/[\u0400-\u04FF]/.test(str)) return { code: "ru", name: "Russian" };
+  if (/[\u0600-\u06FF]/.test(str)) return { code: "ar", name: "Arabic" };
+
+  const lower = str.toLowerCase();
+  const words = new Set(lower.replace(/[¿?¡!.,;:()"]/g, " ").split(/\s+/).filter(Boolean));
+
+  // Spanish detection
+  const esMarkers = ["el", "la", "los", "las", "es", "en", "por", "para", "porque", "debería", "deberia", "que", "una", "energía", "gobierno"];
+  const esMatches = esMarkers.filter((w) => words.has(w)).length;
+  if (lower.includes("¿") || lower.includes("¡") || (esMatches >= 2 && !words.has("the") && !words.has("is"))) {
+    return { code: "es", name: "Spanish" };
+  }
+
+  // French detection
+  const frMarkers = ["le", "la", "les", "des", "est", "dans", "pour", "travail", "société", "devrait", "parce", "c'est", "qu'il", "une"];
+  const frMatches = frMarkers.filter((w) => words.has(w) || lower.includes(w)).length;
+  if (frMatches >= 2 && !words.has("the") && !words.has("is")) {
+    return { code: "fr", name: "French" };
+  }
+
+  // German detection
+  const deMarkers = ["der", "die", "das", "und", "ist", "nicht", "eine", "einer", "sollte", "künstliche", "intelligenz", "weil", "zu"];
+  const deMatches = deMarkers.filter((w) => words.has(w)).length;
+  if ((deMatches >= 2 || lower.includes("ä") || lower.includes("ö") || lower.includes("ü") || lower.includes("ß")) && !words.has("the")) {
+    return { code: "de", name: "German" };
+  }
+
+  // Italian detection
+  const itMarkers = ["il", "la", "non", "perché", "dovrebbe", "della", "delle", "sono", "questo", "nel"];
+  if (itMarkers.filter((w) => words.has(w)).length >= 2 && !words.has("the")) {
+    return { code: "it", name: "Italian" };
+  }
+
+  // Portuguese detection
+  const ptMarkers = ["não", "que", "para", "deveria", "como", "mais", "energia", "trabalho", "governo", "uma"];
+  if ((ptMarkers.filter((w) => words.has(w)).length >= 2 || lower.includes("ção")) && !words.has("the")) {
+    return { code: "pt", name: "Portuguese" };
+  }
+
+  return { code: "en", name: "English" };
 }
 
 /**
@@ -165,8 +228,29 @@ export function classifyInput(statement: string): {
     "who are you",
     "what's up",
     "whats up",
+    // Multilingual greetings
+    "hola",
+    "buenos dias",
+    "buenas tardes",
+    "buenas noches",
+    "gracias",
+    "bonjour",
+    "salut",
+    "merci",
+    "hallo",
+    "guten tag",
+    "danke",
+    "namaste",
+    "ciao",
+    "grazie",
+    "olá",
+    "ola",
+    "obrigado",
+    "konnichiwa",
+    "arigato",
+    "ni hao",
   ]);
-  const cleanPunct = lower.replace(/[!?,.]/g, "").trim();
+  const cleanPunct = lower.replace(/[!?,.¿¡]/g, "").trim();
   const isGreetingOnly =
     words.length <= 4 &&
     (greetingExact.has(cleanPunct) ||
@@ -179,7 +263,7 @@ export function classifyInput(statement: string): {
       is_stance: false,
       category: "GREETING",
       reason: "Social greeting or conversational pleasantry without an asserted belief.",
-      say: "Welcome to Echo Chamber Breaker. State a strong opinion or conviction, and I will steelman the opposing case to test your thinking.",
+      say: "Welcome to Echo Chamber Breaker. State a strong opinion or conviction in any language, and I will steelman the opposing case to test your thinking.",
     };
   }
 
@@ -198,6 +282,17 @@ export function classifyInput(statement: string): {
     "why are we still",
     "why do people ignore",
     "how is it that people",
+    // Multilingual rhetorical indicators
+    "¿no es obvio",
+    "no es obvio",
+    "¿no te parece",
+    "no te parece",
+    "¿cómo puede alguien",
+    "n'est-il pas évident",
+    "pourquoi les gens continuent",
+    "ist es nicht offensichtlich",
+    "wie kann man nur",
+    "क्या यह स्पष्ट नहीं है",
   ];
   const isRhetoricalStance = rhetoricalPhrases.some((phrase) => lower.startsWith(phrase));
   if (isRhetoricalStance) {
@@ -225,6 +320,12 @@ export function classifyInput(statement: string): {
     "poisoning",
     "ruining",
     "suicide",
+    "peligroso",
+    "dañino",
+    "inútil",
+    "dangereux",
+    "inutile",
+    "gefährlich",
   ];
   const hasStrongEvaluative = strongEvaluativesInQuestion.some((w) => lower.includes(w));
 
@@ -236,8 +337,17 @@ export function classifyInput(statement: string): {
       lower.startsWith("why does") ||
       lower.startsWith("why is") ||
       lower.startsWith("can you explain") ||
-      lower.startsWith("tell me about")) &&
-    trimmed.endsWith("?") &&
+      lower.startsWith("tell me about") ||
+      lower.startsWith("¿qué es") ||
+      lower.startsWith("¿que es") ||
+      lower.startsWith("qué es") ||
+      lower.startsWith("que es") ||
+      lower.startsWith("qu'est-ce que") ||
+      lower.startsWith("was ist") ||
+      lower.startsWith("cos'è") ||
+      lower.startsWith("o que é") ||
+      lower.includes("क्या है")) &&
+    (trimmed.endsWith("?") || lower.startsWith("¿")) &&
     !hasStrongEvaluative;
 
   if (isQuestion) {
@@ -794,6 +904,100 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       ? mlPred.suggestedSocraticInquiry
       : `What specific empirical counter-evidence or historical precedent regarding ${keySubject}, if discovered tomorrow, would lead you to revise your certainty?`;
 
+    const lang = detectLanguage(cleanStatement);
+    if (lang.code === "es") {
+      return buildSteelmanResponse(
+        `Examinando ${keySubject}: la contra-evidencia rigurosa demuestra que las compensaciones que considera insignificantes son esenciales para la resiliencia sistémica.`,
+        statement,
+        `Los mecanismos fundamentales con respecto a ${keySubject} se sustentan en incentivos sistémicos vitales, adaptaciones históricas y equilibrios evolutivos.`,
+        [
+          {
+            premise: `Incentivos sistémicos y resiliencia en ${keySubject}`,
+            evidenceOrMechanism: `Los sistemas complejos preservan redundancias protectoras frente a crisis imprevistas vinculadas a ${keySubject}.`,
+          },
+          {
+            premise: "Equilibrios históricos y adaptación",
+            evidenceOrMechanism: "Las normas institucionales han evolucionado para resolver dilemas colectivos profundos.",
+          },
+          {
+            premise: "Costos de externalidad no observados",
+            evidenceOrMechanism: "La eliminación radical de estructuras existentes genera consecuencias imprevistas de segundo orden.",
+          },
+        ],
+        [
+          `Su postura identifica acertadamente puntos de fricción tangibles y costos observados asociados a ${keySubject}.`,
+        ],
+        `¿Qué condiciones empíricas específicas respecto a ${keySubject} le llevarían a reconsiderar la certeza de esta conclusión?`
+      );
+    }
+    if (lang.code === "fr") {
+      return buildSteelmanResponse(
+        `En examinant ${keySubject} : des contre-preuves rigoureuses indiquent que les compromis jugés négligeables sont cruciaux pour la résilience globale.`,
+        statement,
+        `Les mécanismes fondamentaux concernant ${keySubject} reposent sur des incitations systémiques vitales, des adaptations historiques et des équilibres complexes.`,
+        [
+          {
+            premise: `Résilience systémique et incitations liées à ${keySubject}`,
+            evidenceOrMechanism: `Les structures adaptatives évitent des défaillances asymétriques majeures dans ${keySubject}.`,
+          },
+          {
+            premise: "Précédents historiques et stabilité",
+            evidenceOrMechanism: "Les compromis institutionnels protègent la cohésion sociale contre les chocs externes.",
+          },
+          {
+            premise: "Effets de second ordre non anticipés",
+            evidenceOrMechanism: "L'abolition hâtive d'un système engendre souvent des distorsions imprévues.",
+          },
+        ],
+        [
+          `Votre affirmation souligne pertinemment des difficultés réelles et des coûts observés concernant ${keySubject}.`,
+        ],
+        `Quelles conditions empiriques concrètes concernant ${keySubject} vous conduiraient à réévaluer la certitude de cette affirmation ?`
+      );
+    }
+    if (lang.code === "de") {
+      return buildSteelmanResponse(
+        `Bei genauer Betrachtung von ${keySubject}: Stichhaltige Gegenbeweise zeigen, dass vermeintlich vernachlässigbare Kompromisse für die Systemresilienz unverzichtbar sind.`,
+        statement,
+        `Die grundlegenden Mechanismen bezüglich ${keySubject} stützen sich auf vitale systemische Anreize, historische Anpassungen und institutionelle Stabilität.`,
+        [
+          {
+            premise: `Systemische Resilienz und evolutionäre Stabilität bei ${keySubject}`,
+            evidenceOrMechanism: `Komplexe Institutionen federn unvorhersehbare Krisen durch Schutzpuffer ab.`,
+          },
+          {
+            premise: "Historische Erfahrung und Trade-Offs",
+            evidenceOrMechanism: "Geltende Regelwerke lösen tiefgreifende Koordinationsprobleme.",
+          },
+        ],
+        [
+          `Ihr Standpunkt identifiziert treffend konkrete Reibungspunkte und beobachtbare Belastungen rund um ${keySubject}.`,
+        ],
+        `Welche empirischen Tatsachen bezüglich ${keySubject} würden Sie dazu bewegen, die Gewissheit dieses Urteils zu hinterfragen?`
+      );
+    }
+    if (lang.code === "hi") {
+      return buildSteelmanResponse(
+        `${keySubject} का विश्लेषण: कठोर साक्ष्य दर्शाते हैं कि जिन पहलुओं को नगण्य माना गया है, वे प्रणालीगत स्थिरता के लिए अनिवार्य हैं।`,
+        statement,
+        `${keySubject} के बुनियादी तंत्र महत्वपूर्ण प्रणालीगत प्रोत्साहनों, ऐतिहासिक अनुकूलनों और गहरे संतुलन पर टिके हैं।`,
+        [
+          {
+            premise: `${keySubject} में प्रणालीगत लचीलापन और संतुलन`,
+            evidenceOrMechanism: "जटिल संरचनाएं गंभीर संकटों के दौरान सुरक्षा बफर प्रदान करती हैं।",
+          },
+          {
+            premise: "ऐतिहासिक अनुभव और व्यावहारिक लाभ",
+            evidenceOrMechanism: "संस्थागत व्यवस्थाएं दीर्घकालिक सामाजिक समन्वय को बनाए रखती हैं।",
+          },
+        ],
+        [
+          `आपका विचार ${keySubject} से जुड़ी वास्तविक व्यावहारिक कठिनाइयों को सही ढंग से उजागर करता है।`,
+        ],
+        `कौन से प्रत्यक्ष प्रमाण आपको ${keySubject} के निष्कर्ष की निश्चितता पर पुनर्विचार करने के लिए प्रेरित करेंगे?`
+      );
+    }
+
     return buildSteelmanResponse(
       `Examining ${keySubject}: rigorous counter-evidence indicates that the trade-offs you consider negligible are central to systemic resilience.`,
       statement,
@@ -826,12 +1030,17 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       "no way",
       "bullshit",
       "nonsense",
+      "da igual",
+      "tontería",
+      "n'importe quoi",
+      "unsinn",
+      "बकवास",
     ];
 
     const isDismissive =
       words < 4 || dismissivePhrases.some((phrase) => lower === phrase || lower.startsWith(phrase));
 
-    // Check for concession / updating beliefs
+    // Check for concession / updating beliefs (multilingual)
     const concessionPhrases = [
       "i concede",
       "fair point",
@@ -841,6 +1050,18 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       "that makes sense",
       "i agree with that aspect",
       "valid point",
+      "reconozco",
+      "buen punto",
+      "tienes razón",
+      "de acuerdo",
+      "je concède",
+      "bon point",
+      "tu as raison",
+      "ich gebe zu",
+      "guter punkt",
+      "stimmt",
+      "मैं सहमत हूँ",
+      "यह सही बिंदु है",
     ];
     const isConcession = concessionPhrases.some((phrase) => lower.includes(phrase));
 
@@ -921,6 +1142,144 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       priorStatementReference: history.recentEvents[0]?.reason,
       recommendedTimeMinutes: 3,
     };
+  }
+
+  async generateEpistemicReport(
+    profile: HonestyProfile,
+    events: import("../types/index.js").HonestyEvent[],
+    targetLanguage: string = "en"
+  ): Promise<string[]> {
+    const lang = targetLanguage.toLowerCase().slice(0, 2);
+
+    if (profile.totalChallenges === 0) {
+      if (lang === "es") {
+        return [
+          "No se han registrado desafíos dialécticos aún. Comience analizando una opinión firme para calibrar su perfil.",
+          "La calibración inicial mapea sus dimensiones de apertura y rigor argumentativo frente a contra-evidencia.",
+        ];
+      }
+      if (lang === "fr") {
+        return [
+          "Aucun défi dialectique enregistré pour l'instant. Commencez par analyser une opinion ferme pour étalonner votre profil.",
+          "L'étalonnage initial évalue votre ouverture d'esprit et votre rigueur face aux contre-preuves.",
+        ];
+      }
+      if (lang === "de") {
+        return [
+          "Bisher wurden keine dialektischen Herausforderungen aufgezeichnet. Beginnen Sie mit der Analyse einer festen Überzeugung.",
+          "Die Basiskalibrierung erfasst Ihre Offenheit für Beweise und dialektische Tiefe.",
+        ];
+      }
+      if (lang === "hi") {
+        return [
+          "अभी तक कोई वैचारिक चुनौती दर्ज नहीं की गई है। अपना स्कोर कैलिब्रेट करने के लिए एक मजबूत राय का विश्लेषण करें।",
+          "आरंभिक कैलिब्रेशन विरोधी साक्ष्यों के प्रति आपकी बौद्धिक खुलापन और तार्किक दृढ़ता को मापता है।",
+        ];
+      }
+      return [
+        "No challenges recorded yet. Begin by analyzing a strong opinion to calibrate your score.",
+        "Initial baseline calibration establishes your 5-dimensional epistemic openness and argumentative rigor.",
+      ];
+    }
+
+    if (lang === "es") {
+      const insights: string[] = [];
+      if (profile.engagementRate >= 0.75) {
+        insights.push("Alta disposición para interactuar con la fricción dialéctica en lugar de refugiarse en el consenso.");
+      } else {
+        insights.push("Tasa elevada de desestimación detectada. Profundizar en premisas contrarias elevará su puntuación.");
+      }
+      if (profile.concessionCount > 0) {
+        insights.push(`Se registraron ${profile.concessionCount} actualizaciones genuinas de creencias al confrontar evidencia superior.`);
+      } else {
+        insights.push("Cero concesiones registradas; explore si sus convicciones admiten incertidumbre epistémica y matices empíricos.");
+      }
+      insights.push(
+        profile.currentScore > 65
+          ? "Rendimiento ejemplar: demuestra un equilibrio maduro entre la firmeza de convicciones y la humildad intelectual."
+          : "Recomendación estratégica: formule contra-argumentos de alta racionalidad para desbloquear el nivel Open Minded."
+      );
+      return insights;
+    }
+
+    if (lang === "fr") {
+      const insights: string[] = [];
+      if (profile.engagementRate >= 0.75) {
+        insights.push("Grande volonté d'affronter la contradiction dialectique plutôt que de chercher l'approbation facile.");
+      } else {
+        insights.push("Taux de rejet élevé détecté. Examiner les prémisses adverses permettra d'augmenter votre score d'honnêteté.");
+      }
+      if (profile.concessionCount > 0) {
+        insights.push(`${profile.concessionCount} ajustements de croyances authentiques enregistrés face à des faits probants.`);
+      } else {
+        insights.push("Aucune concession accordée ; explorez si vos convictions laissent place au doute méthodique poppérien.");
+      }
+      insights.push(
+        profile.currentScore > 65
+          ? "Posture exemplaire : remarquable équilibre entre clarté argumentative et humilité intellectuelle."
+          : "Conseil dialectique : approfondissez les compromis structurels pour atteindre le palier d'ouverture d'esprit."
+      );
+      return insights;
+    }
+
+    if (lang === "de") {
+      const insights: string[] = [];
+      if (profile.engagementRate >= 0.75) {
+        insights.push("Hohe Bereitschaft, sich intellektueller Reibung zu stellen, anstatt in Bestätigungsblasen zu verharren.");
+      } else {
+        insights.push("Erhöhte Ablehnungsrate festgestellt. Das Eingehen auf Gegenargumente wird Ihren Ehrlichkeitsscore steigern.");
+      }
+      if (profile.concessionCount > 0) {
+        insights.push(`${profile.concessionCount} echte Überzeugungsanpassungen nach Konfrontation mit stichhaltigen Beweisen protokolliert.`);
+      } else {
+        insights.push("Bislang keine Zugeständnisse; prüfen Sie, ob Ihre Positionen Raum für epistemische Ungewissheit lassen.");
+      }
+      insights.push(
+        profile.currentScore > 65
+          ? "Hervorragende Urteilskraft: Vorbildliche Synthese aus analytischer Schärfe und intellektueller Bescheidenheit."
+          : "Strategischer Hinweis: Fokussieren Sie sich auf Dennett-Rapoport-Gegenargumente für höhere Wertungen."
+      );
+      return insights;
+    }
+
+    if (lang === "hi") {
+      const insights: string[] = [];
+      if (profile.engagementRate >= 0.75) {
+        insights.push("सहमति में पीछे हटने के बजाय वैचारिक मतभेदों और तार्किक घर्षण से जुड़ने की उच्च तत्परता।");
+      } else {
+        insights.push("उच्च अस्वीकृति दर देखी गई। विरोधी तर्कों के मूल सिद्धांतों को समझने से आपका स्कोर बढ़ेगा।");
+      }
+      if (profile.concessionCount > 0) {
+        insights.push(`बेहतर साक्ष्य मिलने पर विचारों में ${profile.concessionCount} वास्तविक संशोधन दर्ज किए गए।`);
+      } else {
+        insights.push("अब तक शून्य रियायतें दर्ज की गई हैं; विचार करें कि क्या आपकी मान्यताओं में बौद्धिक अनिश्चितता के लिए स्थान है।");
+      }
+      insights.push(
+        profile.currentScore > 65
+          ? "उत्कृष्ट संतुलन: अपने विचारों में दृढ़ता और दूसरों के साक्ष्यों के प्रति विनम्रता का प्रभावी समन्वय।"
+          : "सुझाव: विरोधी विचारों के साथ गहरी तार्किक साझेदारी विकसित करने से आपका स्तर और ऊपर उठेगा।"
+      );
+      return insights;
+    }
+
+    // Default English
+    const insights: string[] = [];
+    if (profile.engagementRate >= 0.75) {
+      insights.push("High willingness to engage with friction rather than retreating into agreement.");
+    } else {
+      insights.push("Elevated dismissal rate detected. Stepping into opposing premises will elevate your score.");
+    }
+    if (profile.concessionCount > 0) {
+      insights.push(`Recorded ${profile.concessionCount} genuine belief updates upon confronting superior evidence.`);
+    } else {
+      insights.push("Zero concessions recorded so far; explore whether your convictions leave room for epistemic uncertainty.");
+    }
+    insights.push(
+      profile.currentScore > 65
+        ? "Exemplary epistemic humility: consistently weighs foundational counter-theses and acknowledges structural trade-offs."
+        : "Growth recommendation: engage deeply with charitable counter-arguments to elevate your dialectical rigor."
+    );
+    return insights;
   }
 }
 
@@ -1029,11 +1388,14 @@ class BedrockCognitiveAdapter implements CognitiveAdapter {
 
     try {
       const systemPrompt = `You are an expert cognitive psychologist and epistemic calibration analyst.
-Analyze the user's opinion statement. Return pure JSON with this exact schema:
+Analyze the user's opinion statement in whatever language it is presented.
+MULTILINGUAL MANDATE: Detect the language of the statement. Analyze their stance faithfully in that language and return the ISO language code (e.g., 'en', 'es', 'fr', 'de', 'hi', 'zh', 'ja', 'it', 'pt', 'ar', 'ru').
+Return pure JSON with this exact schema:
 {
   "is_stance": true,
   "originalStatement": string,
   "detectedTopic": string,
+  "detectedLanguage": string,
   "claim": string,
   "polarity": "STRONG_AGREE" | "LEAN_AGREE" | "NEUTRAL" | "LEAN_DISAGREE" | "STRONG_DISAGREE",
   "confidence": number (0.0 to 1.0),
@@ -1047,7 +1409,7 @@ Analyze the user's opinion statement. Return pure JSON with this exact schema:
   "unexamined_assumption": string,
   "topic_label": string,
   "calibrationNotes": string,
-  "say": string (MANDATORY: Voice-ready summary <= 40 words)
+  "say": string (MANDATORY: Voice-ready summary <= 40 words in the user's language)
 }`;
       const res = await this.invokeModelJSON<StanceAnalysis>(systemPrompt, cleanStatement);
       res.is_stance = true;
@@ -1086,14 +1448,16 @@ Rules:
 4. Voice 'say' field: MANDATORY short spoken summary strictly under 40 words, dignified, direct, and conversational for Alexa.
 5. Provide 3 structural premises with specific historical, scientific, or systemic evidence.
 6. Provide a penetrating Socratic epistemic question that challenges the core assumption.
+7. MULTILINGUAL MANDATE: Detect the language of the user's statement. You MUST generate the entire steelman response (say, opposingThesis, coreArguments, concessionPoints, epistemicQuestion) in that EXACT SAME LANGUAGE (e.g. Spanish, French, German, Hindi, Japanese, Chinese, Russian, Italian, Portuguese, Arabic, etc.). Strictly preserve the <= 40 words voice brevity constraint for 'say'.
 Return pure JSON matching:
 {
-  "say": string (MANDATORY: Voice-ready summary under 40 words, punchy and direct),
+  "say": string (MANDATORY: Voice-ready summary under 40 words, punchy and direct in the user's language),
   "originalClaim": string,
-  "opposingThesis": string,
+  "opposingThesis": string (in the user's language),
   "coreArguments": [{"premise": string, "evidenceOrMechanism": string}],
   "concessionPoints": string[],
-  "epistemicQuestion": string
+  "epistemicQuestion": string (in the user's language),
+  "detectedLanguage": string
 }`;
       const userMsg = `Original statement: "${cleanStatement}". ${stance ? `Stance analysis: ${JSON.stringify(stance)}` : ""}`;
       const res = await this.invokeModelJSON<SteelmanResponse>(systemPrompt, userMsg);
@@ -1128,6 +1492,7 @@ Return pure JSON matching:
   ): Promise<EngagementAssessment> {
     try {
       const systemPrompt = `Evaluate how honestly and substantively the user engaged with a steelmanned opposing view.
+MULTILINGUAL: The user may respond in any language (English, Spanish, French, German, Hindi, etc.). Accurately evaluate their engagement, concession, or rebuttal in their language.
 Return pure JSON with schema:
 {
   "quality": "HIGH_RATIONALITY" | "MODERATE_ENGAGEMENT" | "CONCESSION" | "LOW_EFFORT_DISMISSAL" | "DEFENSIVE_STRAWMAN" | "IGNORED",
@@ -1136,7 +1501,7 @@ Return pure JSON with schema:
   "addressedBlindSpots": string[],
   "acknowledgedValidPoints": string[],
   "counterQualityScore": number (0 to 100),
-  "feedbackSay": string (under 30 words speech-ready feedback)
+  "feedbackSay": string (under 30 words speech-ready feedback in user's language)
 }`;
       const userMsg = `Steelman was: ${JSON.stringify(steelman)}. User reply was: "${userReply}".`;
       return await this.invokeModelJSON<EngagementAssessment>(systemPrompt, userMsg);
@@ -1163,6 +1528,31 @@ Return pure JSON with schema:
       );
     } catch {
       return this.fallback.generateProactiveChallenge(history);
+    }
+  }
+
+  async generateEpistemicReport(
+    profile: HonestyProfile,
+    events: import("../types/index.js").HonestyEvent[],
+    targetLanguage: string = "en"
+  ): Promise<string[]> {
+    try {
+      const systemPrompt = `You are Echo Chamber Breaker's chief epistemic psychologist and calibration analyst.
+Review this user's dialectical profile, radar dimensions, concession rate, and recent debate events.
+Generate exactly 3 to 4 deep, personalized, highly nuanced epistemic insights and actionable growth recommendations.
+MULTILINGUAL INSTRUCTION: Generate the insights in the requested language: "${targetLanguage}" (e.g., if 'es' generate in Spanish, if 'fr' generate in French, if 'de' generate in German, if 'hi' generate in Hindi, if 'en' generate in English).
+Return pure JSON:
+{
+  "insights": string[] (array of 3-4 distinct, articulate sentences diagnosing their intellectual openness, bias vulnerabilities, and growth opportunities in the target language)
+}`;
+      const userMsg = `Profile: Score ${profile.currentScore}, Challenges ${profile.totalChallenges}, Engaged ${profile.engagedCount}, Concessions ${profile.concessionCount}, Concession Rate ${profile.concessionRate}. Recent Events: ${JSON.stringify(events.slice(0, 5).map((e) => ({ type: e.eventType, delta: e.delta, reason: e.reason })))}`;
+      const res = await this.invokeModelJSON<{ insights: string[] }>(systemPrompt, userMsg);
+      if (res && Array.isArray(res.insights) && res.insights.length > 0) {
+        return res.insights;
+      }
+      return this.fallback.generateEpistemicReport(profile, events, targetLanguage);
+    } catch {
+      return this.fallback.generateEpistemicReport(profile, events, targetLanguage);
     }
   }
 }
