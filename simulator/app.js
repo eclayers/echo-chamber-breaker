@@ -1161,6 +1161,7 @@ Verified append-only tamper-proof ledger via Model Context Protocol.
       card.classList.add("active");
       statementInput.value = card.getAttribute("data-text");
       updateStepper(1);
+      playEchoChime("wake");
     });
   });
 
