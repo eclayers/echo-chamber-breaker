@@ -8,7 +8,8 @@ Use this checklist before submitting on Devpost / Amazon Developer Portal.
 - [x] **Git Repository Initialized**: Clean commit without secrets or binary files.
 - [x] **`.env` Ignored**: Confirmed `.env` is listed in `.gitignore` (only `.env.example` committed).
 - [x] **Zero-Error Build**: `npm run build` runs cleanly with strict TypeScript checks.
-- [x] **All Tests Passing**: 18 of 18 tests passing (`npm test`).
+- [x] **All Tests Passing**: 46 of 46 automated tests passing across 8 test suites (`npm test`), plus 114 end-to-end stress test assertions across 13 phases (`npx tsx scripts/stresstest.ts`).
+- [x] **Multilingual LLM Understanding**: Real-time language detection and native dialectical steelmanning across Spanish, French, German, Hindi, Japanese, and English.
 - [x] **MIT License**: Included in root `LICENSE`.
 
 ### 2. MCP Protocol Conformance
