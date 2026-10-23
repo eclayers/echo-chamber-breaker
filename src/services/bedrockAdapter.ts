@@ -10,6 +10,7 @@ import type {
   HonestyProfile,
   InputClassification,
 } from "../types/index.js";
+import { epistemicMLTrainer } from "../ml/trainer.js";
 
 export interface CognitiveAdapter {
   analyzeStance(statement: string): Promise<StanceAnalysis>;
@@ -348,17 +349,22 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       );
       coreAssumption = "Assumes multi-cloud redundancy provides cost protection without accounting for multiplied engineering overhead.";
     } else {
-      // Dynamic semantic subject extraction
+      // Dynamic semantic subject & ML featurization
+      const mlPred = epistemicMLTrainer.predict(statement);
       const cleanTokens = statement.replace(/[^\w\s]/g, " ").split(/\s+/).filter((w) => w.length > 2);
       const stopwords = new Set(["the", "and", "that", "this", "with", "from", "they", "them", "have", "been", "were", "what", "feel", "think", "believe", "are"]);
       const meaningful = cleanTokens.filter((w) => !stopwords.has(w.toLowerCase()));
       const subject = meaningful.slice(0, 3).join(" ") || "General Discourse";
       detectedTopic = `Discourse on ${subject.charAt(0).toUpperCase() + subject.slice(1)}`;
 
-      confidence = Math.min(0.95, Math.max(0.65, 0.6 + statement.length * 0.002));
-      emotionalCharge = statement.includes("!") || lower.includes("worst") || lower.includes("never") || lower.includes("always") || lower.includes("hate") ? 0.85 : 0.55;
+      confidence = Math.min(0.95, Math.max(0.65, mlPred.calibratedConfidence));
+      emotionalCharge = Math.min(0.95, Math.max(0.35, mlPred.emotionalAffect / 100));
+
+      if (mlPred.predictedBias !== "NONE" && !fallacies.includes(mlPred.predictedBias)) {
+        fallacies.push(mlPred.predictedBias);
+      }
       if (lower.includes("always") || lower.includes("never") || lower.includes("worst") || lower.includes("completely")) {
-        fallacies.push("FALSE_DICHOTOMY", "OVERCONFIDENCE_EFFECT");
+        if (!fallacies.includes("OVERCONFIDENCE_EFFECT")) fallacies.push("OVERCONFIDENCE_EFFECT");
       }
       blindSpots.push(
         `Systemic incentives and positive externalities often overlooked in ${subject}`,
@@ -368,6 +374,7 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       coreAssumption = `Assumes that observed negative attributes of ${subject} represent its complete systemic utility without counterbalancing virtues.`;
     }
 
+    const mlPred = epistemicMLTrainer.predict(statement);
     const convictionCertainty = Math.round(confidence * 100);
     const emotionalChargeVal = Math.round(emotionalCharge * 100);
     const sayVoice = `Detected high conviction on ${detectedTopic}. I have identified three crucial blind spots in this position.`;
@@ -389,8 +396,11 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       coreAssumption,
       unexamined_assumption: coreAssumption,
       topic_label: detectedTopic,
-      calibrationNotes: `Calibrated with Bayesian stance prior for "${detectedTopic}".`,
+      calibrationNotes: `Calibrated with ML Platt temperature scaling (T = ${epistemicMLTrainer.getLastTrainingResult()?.temperatureParameter || 1.0}).`,
       say: sayVoice,
+      ml_features: mlPred.topFeatures,
+      calibrated_probability: mlPred.calibratedConfidence,
+      matched_domain: mlPred.matchedDomain,
     };
   }
 
@@ -603,37 +613,44 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       );
     }
 
-    // 7. Dynamic Semantic Entity Extractor for Any Other Custom Statement
+    // 7. Dynamic Semantic Entity Extractor & ML Domain Synthesizer
+    const mlPred = epistemicMLTrainer.predict(statement);
     const cleanTokens = statement.replace(/[^\w\s]/g, " ").split(/\s+/).filter((w) => w.length > 2);
     const stopwords = new Set(["the", "and", "that", "this", "with", "from", "they", "them", "have", "been", "were", "what", "feel", "think", "believe", "are"]);
     const meaningful = cleanTokens.filter((w) => !stopwords.has(w.toLowerCase()));
     const keySubject = meaningful.slice(0, 3).join(" ") || "this subject";
 
+    const dynamicPremises = [
+      {
+        premise: "Systemic Resilience & Utility",
+        evidenceOrMechanism: mlPred.suggestedOpposingPremises[0] ||
+          `Elements often viewed as drawbacks in ${keySubject} frequently serve as stabilizing buffers against unpredictable systemic shocks and secondary externalities.`,
+      },
+      {
+        premise: "Incentive Rationality & Trade-Offs",
+        evidenceOrMechanism: mlPred.suggestedOpposingPremises[1] ||
+          `Key actors and historical forces shaping ${keySubject} are operating under rational trade-offs that appear flawed only when isolated from their operating constraints.`,
+      },
+      {
+        premise: "Empirical Precedent & Unintended Pathologies",
+        evidenceOrMechanism: mlPred.suggestedOpposingPremises[2] ||
+          `Empirical and historical precedents demonstrate that completely eliminating the mechanisms behind ${keySubject} creates unforeseen replacement pathologies.`,
+      },
+    ];
+
+    const dynamicQuestion = mlPred.suggestedSocraticInquiry && mlPred.suggestedSocraticInquiry.endsWith("?")
+      ? mlPred.suggestedSocraticInquiry
+      : `What specific empirical counter-evidence or historical precedent regarding ${keySubject}, if discovered tomorrow, would lead you to revise your certainty?`;
+
     return buildSteelmanResponse(
       `Examining ${keySubject}: rigorous counter-evidence indicates that the trade-offs you consider negligible are central to systemic resilience.`,
       statement,
       `The foundational mechanisms regarding ${keySubject} are sustained by vital systemic incentives, historical adaptations, and contextual trade-offs.`,
-      [
-        {
-          premise: "Systemic Function & Hidden Utility",
-          evidenceOrMechanism:
-            `Elements often viewed as drawbacks in ${keySubject} frequently serve as stabilizing buffers against unpredictable systemic shocks and secondary externalities.`,
-        },
-        {
-          premise: "Incentive Rationality",
-          evidenceOrMechanism:
-            `Key actors and historical forces shaping ${keySubject} are operating under rational trade-offs that appear flawed only when isolated from their operating constraints.`,
-        },
-        {
-          premise: "Alternative Precedents",
-          evidenceOrMechanism:
-            `Empirical and historical precedents demonstrate that completely eliminating the mechanisms behind ${keySubject} creates unforeseen replacement pathologies.`,
-        },
-      ],
+      dynamicPremises,
       [
         `Your stance correctly highlights tangible friction points, genuine vulnerabilities, and immediate observed costs associated with ${keySubject}.`,
       ],
-      `What specific empirical counter-evidence or historical precedent regarding ${keySubject}, if discovered tomorrow, would lead you to revise your certainty?`
+      dynamicQuestion
     );
   }
 

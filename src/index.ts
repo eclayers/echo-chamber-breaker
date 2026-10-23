@@ -8,6 +8,7 @@ import { cognitiveAdapter } from "./services/bedrockAdapter.js";
 import { sessionStore } from "./services/sessionStore.js";
 import { honestyEngine } from "./services/honestyEngine.js";
 import { BENCHMARK_DATASET, runBenchmarkEvaluation } from "./ml/evaluation.js";
+import { epistemicMLTrainer } from "./ml/trainer.js";
 import { handleAlexaRequest } from "./alexa/adapter.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -87,6 +88,56 @@ app.get("/api/benchmark", async (_req, res) => {
       success: true,
       mode: cognitiveAdapter.getMode(),
       summary,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Train / Retrain ML Calibration Model (ML Best Practices Pipeline)
+app.post("/api/ml/train", async (req, res) => {
+  try {
+    const epochs = req.body.epochs ? parseInt(req.body.epochs, 10) : 30;
+    const learningRate = req.body.learningRate ? parseFloat(req.body.learningRate) : 0.15;
+    const l2Lambda = req.body.l2Lambda ? parseFloat(req.body.l2Lambda) : 0.005;
+
+    const result = epistemicMLTrainer.trainModel(epochs, learningRate, l2Lambda);
+    res.json({
+      success: true,
+      result,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get ML Model Architecture & Calibration Report
+app.get("/api/ml/status", async (_req, res) => {
+  try {
+    const result = epistemicMLTrainer.getLastTrainingResult();
+    res.json({
+      success: true,
+      model: "Epistemic Regularized Softmax + Platt Calibration",
+      status: result ? "TRAINED" : "INITIALIZING",
+      result,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Real-Time ML Inference & Explainability (<1ms)
+app.post("/api/ml/predict", async (req, res) => {
+  try {
+    const statement = req.body.statement || "";
+    if (!statement.trim()) {
+      res.status(400).json({ error: "Statement is required" });
+      return;
+    }
+    const prediction = epistemicMLTrainer.predict(statement);
+    res.json({
+      success: true,
+      prediction,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -601,15 +601,110 @@
       </aside>
     </div>
 
-    <!-- ML Calibration Modal -->
+    <!-- ML Calibration & Dynamic Training Studio Modal -->
     <div class="classic-modal-overlay" id="benchmarkModal" style="display: none;">
       <div class="classic-modal-dialog">
         <div class="modal-top">
-          <div class="modal-heading">Machine Learning Calibration & Benchmark Dossier</div>
-          <button id="closeBenchmarkModalBtn" class="modal-close-icon">✕</button>
+          <div class="modal-heading">
+            <span>📊 ML EPISTEMIC CALIBRATION & TRAINING STUDIO</span>
+            <span class="modal-badge">ML BEST PRACTICES</span>
+          </div>
+          <button id="closeBenchmarkModalBtn" class="modal-close-icon" title="Close Studio">✕</button>
         </div>
+
         <div class="modal-content-area" id="benchmarkModalBody">
-          <div class="loading-spinner">Evaluating Expected Calibration Error (ECE) across stratified domain slices...</div>
+          <!-- ML Studio Tabs -->
+          <div class="ml-studio-tabs">
+            <button class="ml-tab-btn active" data-mltab="tab-overview">Overview & Calibration</button>
+            <button class="ml-tab-btn" data-mltab="tab-train">Train / Retrain Model</button>
+            <button class="ml-tab-btn" data-mltab="tab-sandbox">Live ML Inference Sandbox</button>
+          </div>
+
+          <!-- TAB 1: Overview & Calibration -->
+          <div class="ml-tab-pane" id="mlTabOverview">
+            <div class="ml-metrics-grid">
+              <div class="ml-metric-card highlight">
+                <span class="ml-metric-label">ECE Calibration Error</span>
+                <span class="ml-metric-val" id="mlStatEce">--</span>
+                <span class="ml-metric-sub" id="mlStatEceSub">↓ Calibrated with Platt Scaling</span>
+              </div>
+              <div class="ml-metric-card">
+                <span class="ml-metric-label">Brier Score</span>
+                <span class="ml-metric-val" id="mlStatBrier">--</span>
+                <span class="ml-metric-sub" id="mlStatBrierSub">Quadratic scoring rule</span>
+              </div>
+              <div class="ml-metric-card">
+                <span class="ml-metric-label">Macro F1-Score</span>
+                <span class="ml-metric-val" id="mlStatF1">--</span>
+                <span class="ml-metric-sub">Balanced accuracy</span>
+              </div>
+              <div class="ml-metric-card">
+                <span class="ml-metric-label">Platt Temperature (T)</span>
+                <span class="ml-metric-val" id="mlStatTemp">--</span>
+                <span class="ml-metric-sub">Optimal scaling parameter</span>
+              </div>
+            </div>
+
+            <!-- Reliability Diagram -->
+            <div class="ml-reliability-box">
+              <div class="ml-reliability-title">
+                <span>Reliability Diagram (Predicted Confidence vs Observed Correctness)</span>
+                <span style="font-size: 11px; color: #ff9900; font-weight: normal;">Orange = Confidence | Green = Accuracy</span>
+              </div>
+              <div class="ml-bins-chart" id="mlBinsChart">
+                <div style="color: #64748b; font-size: 12px; text-align: center; padding: 12px;">Loading calibration bins...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Train / Retrain Model -->
+          <div class="ml-tab-pane" id="mlTabTrain" style="display: none;">
+            <div class="ml-training-panel">
+              <div style="font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 12px;">
+                Hyperparameter Configuration & Regularized Training
+              </div>
+              <div class="ml-params-grid">
+                <div class="ml-param-group">
+                  <label for="mlEpochsInput">Training Epochs</label>
+                  <input type="number" id="mlEpochsInput" class="ml-param-input" value="30" min="5" max="100" />
+                </div>
+                <div class="ml-param-group">
+                  <label for="mlLrInput">Learning Rate (η)</label>
+                  <input type="number" id="mlLrInput" class="ml-param-input" value="0.15" step="0.01" min="0.01" max="1.0" />
+                </div>
+                <div class="ml-param-group">
+                  <label for="mlL2Input">L2 Regularization (λ)</label>
+                  <input type="number" id="mlL2Input" class="ml-param-input" value="0.005" step="0.001" min="0.0001" max="0.1" />
+                </div>
+                <button id="runTrainBtn" class="ml-train-btn">
+                  <span>⚡</span>
+                  <span id="trainBtnText">Retrain ML Model</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="trainProgressBox" style="display: none; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,153,0,0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+              <div style="font-size: 12px; font-weight: 700; color: #ff9900; margin-bottom: 8px;">Training Loss Reduction Across Epochs:</div>
+              <div id="lossCurveSummary" style="font-size: 12px; color: #cbd5e1; font-family: monospace;"></div>
+            </div>
+          </div>
+
+          <!-- TAB 3: Live ML Inference Sandbox -->
+          <div class="ml-tab-pane" id="mlTabSandbox" style="display: none;">
+            <div class="ml-sandbox-panel">
+              <div style="font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px;">
+                Instant On-Device Epistemic Feature & Calibration Inspector (&lt; 1ms)
+              </div>
+              <div class="ml-sandbox-input-row">
+                <input type="text" id="mlSandboxInput" class="ml-sandbox-input" placeholder="Type any opinion statement to run through the trained ML weights..." value="Universal basic income will make people completely lazy and cause economic catastrophe!" />
+                <button id="runPredictBtn" class="classic-btn primary small" style="padding: 8px 18px; font-weight: 700;">Predict</button>
+              </div>
+
+              <div class="ml-sandbox-results" id="mlSandboxResults">
+                <div style="color: #64748b; font-size: 12px;">Click Predict to inspect model logits, Platt calibration, and extracted TF-IDF features.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

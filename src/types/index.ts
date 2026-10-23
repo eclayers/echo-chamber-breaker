@@ -42,6 +42,9 @@ export interface StanceAnalysis {
   topic_label?: string; // short label for UI (spec 3.2)
   calibrationNotes: string;
   say: string; // <= 40 word spoken summary for Alexa (spec 3.2)
+  ml_features?: { feature: string; weight: number }[];
+  calibrated_probability?: number;
+  matched_domain?: string;
 }
 
 export interface SteelmanResponse {

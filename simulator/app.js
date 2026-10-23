@@ -1123,6 +1123,197 @@ Verified append-only tamper-proof ledger via Model Context Protocol.
 
   // Setup Customization Studio
   setupCustomizationStudio();
+
+  // Setup ML Calibration & Training Studio
+  setupMLStudio();
+}
+
+function setupMLStudio() {
+  if (!viewBenchmarkBtn || !benchmarkModal) return;
+
+  // Open modal
+  viewBenchmarkBtn.addEventListener("click", async () => {
+    benchmarkModal.style.display = "flex";
+    await refreshMLStudio();
+  });
+
+  // Close modal
+  if (closeBenchmarkModalBtn) {
+    closeBenchmarkModalBtn.addEventListener("click", () => {
+      benchmarkModal.style.display = "none";
+    });
+  }
+
+  // Close on backdrop click
+  benchmarkModal.addEventListener("click", (e) => {
+    if (e.target === benchmarkModal) {
+      benchmarkModal.style.display = "none";
+    }
+  });
+
+  // Tab switching
+  const mlTabBtns = document.querySelectorAll(".ml-tab-btn");
+  mlTabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      mlTabBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const target = btn.getAttribute("data-mltab");
+      const overviewPane = document.getElementById("mlTabOverview");
+      const trainPane = document.getElementById("mlTabTrain");
+      const sandboxPane = document.getElementById("mlTabSandbox");
+
+      if (overviewPane) overviewPane.style.display = target === "tab-overview" ? "block" : "none";
+      if (trainPane) trainPane.style.display = target === "tab-train" ? "block" : "none";
+      if (sandboxPane) sandboxPane.style.display = target === "tab-sandbox" ? "block" : "none";
+    });
+  });
+
+  // Retrain button
+  const runTrainBtn = document.getElementById("runTrainBtn");
+  if (runTrainBtn) {
+    runTrainBtn.addEventListener("click", async () => {
+      const epochsInput = document.getElementById("mlEpochsInput");
+      const lrInput = document.getElementById("mlLrInput");
+      const l2Input = document.getElementById("mlL2Input");
+      const trainBtnText = document.getElementById("trainBtnText");
+      const trainProgressBox = document.getElementById("trainProgressBox");
+      const lossCurveSummary = document.getElementById("lossCurveSummary");
+
+      const epochs = epochsInput ? epochsInput.value : 30;
+      const learningRate = lrInput ? lrInput.value : 0.15;
+      const l2Lambda = l2Input ? l2Input.value : 0.005;
+
+      try {
+        runTrainBtn.disabled = true;
+        if (trainBtnText) trainBtnText.textContent = "Training Epochs...";
+        if (trainProgressBox) trainProgressBox.style.display = "block";
+        if (lossCurveSummary) lossCurveSummary.textContent = "Running Mini-batch Gradient Descent with L2 regularizer...";
+
+        const res = await fetch("/api/ml/train", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ epochs, learningRate, l2Lambda }),
+        });
+        const data = await res.json();
+        if (data.success && data.result) {
+          const r = data.result;
+          playEchoChime("concession");
+          if (lossCurveSummary) {
+            const firstLoss = r.lossHistory[0]?.loss || 0;
+            const lastLoss = r.finalTrainLoss;
+            const reduction = Math.round(((firstLoss - lastLoss) / Math.max(firstLoss, 0.001)) * 100);
+            lossCurveSummary.innerHTML = `✅ <strong>Training Converged!</strong> Cross-entropy loss reduced from ${firstLoss} to ${lastLoss} (↓${reduction}%).<br>` +
+              `• Platt Calibration Temperature: <strong>T = ${r.temperatureParameter}</strong><br>` +
+              `• Expected Calibration Error (ECE) Reduced: <span style="color:#10b981; font-weight:700;">↓${r.eceImprovementPercent}%</span><br>` +
+              `• Quadratic Brier Score Improved: <span style="color:#10b981; font-weight:700;">↓${r.brierImprovementPercent}%</span><br>` +
+              `• Held-Out Test Accuracy: <strong>${Math.round(r.testMetrics.accuracy * 100)}%</strong> (Macro-F1: ${Math.round(r.testMetrics.macroF1 * 100)}%)`;
+          }
+          await refreshMLStudio();
+        }
+      } catch (err) {
+        if (lossCurveSummary) lossCurveSummary.textContent = `Training failed: ${err.message}`;
+      } finally {
+        runTrainBtn.disabled = false;
+        if (trainBtnText) trainBtnText.textContent = "Retrain ML Model";
+      }
+    });
+  }
+
+  // Predict Sandbox button
+  const runPredictBtn = document.getElementById("runPredictBtn");
+  const mlSandboxInput = document.getElementById("mlSandboxInput");
+  const mlSandboxResults = document.getElementById("mlSandboxResults");
+  if (runPredictBtn && mlSandboxInput && mlSandboxResults) {
+    runPredictBtn.addEventListener("click", async () => {
+      const stmt = mlSandboxInput.value.trim();
+      if (!stmt) return;
+      try {
+        runPredictBtn.disabled = true;
+        runPredictBtn.textContent = "Computing...";
+        const res = await fetch("/api/ml/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ statement: stmt }),
+        });
+        const data = await res.json();
+        if (data.success && data.prediction) {
+          const p = data.prediction;
+          mlSandboxResults.innerHTML = `
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <span class="mcp-tool-pill" style="background: rgba(255,153,0,0.15); border-color: rgba(255,153,0,0.4); color: #ff9900;">
+                Polarity: ${p.predictedPolarity}
+              </span>
+              <span class="mcp-tool-pill" style="background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: #10b981;">
+                Calibrated Confidence: ${Math.round(p.calibratedConfidence * 100)}%
+              </span>
+              <span class="mcp-tool-pill" style="background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: #a78bfa;">
+                Bias: ${p.predictedBias}
+              </span>
+              <span class="mcp-tool-pill" style="background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+                Domain: ${p.matchedDomain || "General"}
+              </span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 6px;">
+              Top Extracted Feature Weights:
+              <div class="ml-feature-chips">
+                ${p.topFeatures.map(f => `<span class="ml-feature-chip">${f.feature} (${f.weight})</span>`).join("")}
+              </div>
+            </div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-top: 6px; padding: 8px; background: rgba(0,0,0,0.25); border-radius: 6px;">
+              <strong>Socratic Counter-Inquiry:</strong> "${p.suggestedSocraticInquiry}"
+            </div>
+          `;
+        }
+      } catch (err) {
+        mlSandboxResults.textContent = `Inference failed: ${err.message}`;
+      } finally {
+        runPredictBtn.disabled = false;
+        runPredictBtn.textContent = "Predict";
+      }
+    });
+  }
+}
+
+async function refreshMLStudio() {
+  try {
+    const res = await fetch("/api/ml/status");
+    const data = await res.json();
+    if (data.success && data.result) {
+      const r = data.result;
+      const eceEl = document.getElementById("mlStatEce");
+      const brierEl = document.getElementById("mlStatBrier");
+      const f1El = document.getElementById("mlStatF1");
+      const tempEl = document.getElementById("mlStatTemp");
+
+      if (eceEl) eceEl.textContent = (r.calibratedReport.expectedCalibrationError * 100).toFixed(1) + "%";
+      if (brierEl) brierEl.textContent = r.calibratedReport.brierScore.toFixed(3);
+      if (f1El) f1El.textContent = Math.round(r.testMetrics.macroF1 * 100) + "%";
+      if (tempEl) tempEl.textContent = "T = " + r.temperatureParameter;
+
+      // Render Reliability Diagram Bins
+      const binsChart = document.getElementById("mlBinsChart");
+      if (binsChart && r.calibratedReport.bins) {
+        binsChart.innerHTML = r.calibratedReport.bins.map((b, i) => {
+          const lower = Math.round(b.confidenceLower * 100);
+          const upper = Math.round(b.confidenceUpper * 100);
+          const predWidth = Math.round(b.avgConfidence * 100);
+          const accWidth = Math.round(b.accuracy * 100);
+          return `
+            <div class="ml-bin-row">
+              <span style="font-family: monospace; color: #94a3b8;">Bin ${i + 1} (${lower}-${upper}%)</span>
+              <div class="ml-bin-bar-track" title="Confidence: ${predWidth}% | Accuracy: ${accWidth}%">
+                <div class="ml-bin-bar-pred" style="width: ${predWidth}%;"></div>
+                <div class="ml-bin-bar-acc" style="width: ${accWidth}%;"></div>
+              </div>
+              <span style="text-align: right; font-family: monospace; color: #cbd5e1;">N = ${b.count}</span>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to refresh ML studio:", err);
+  }
 }
 
 // Initial MCP Handshake & Ready Boot
