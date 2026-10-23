@@ -37,10 +37,10 @@
           <span class="status-label" id="mcpStatusText">MCP Streamable HTTP</span>
         </div>
 
-        <!-- How It Works Guided Tour Toggle -->
-        <button id="toggleHowItWorksBtn" class="classic-nav-btn" title="View the 4-step anti-sycophant pipeline">
+        <!-- About & Architecture Modal Toggle -->
+        <button id="toggleHowItWorksBtn" class="classic-nav-btn" title="View mission, system architecture, and epistemic framework">
           <span class="btn-icon">💡</span>
-          <span>How It Works</span>
+          <span>About &amp; Architecture</span>
         </button>
 
         <!-- Customizations Studio Toggle (Collapsed by default) -->
@@ -446,6 +446,60 @@
             </div>
           </div>
 
+          <!-- Dialectical Reasoning Chain (Socratic CoT) -->
+          <div class="socratic-cot-chamber" id="socraticCotChamber">
+            <div class="cot-toggle-bar" id="cotToggleBar" style="cursor: pointer;" title="Inspect the formal multi-step dialectical reasoning chain">
+              <div class="cot-title">
+                <span class="cot-icon">🧠</span>
+                <span>FORMAL DIALECTICAL REASONING TRACE (SOCRATIC CoT)</span>
+                <span class="cot-badge">RAPOPORT &amp; POPPER</span>
+              </div>
+              <span class="cot-indicator" id="cotIndicator">[Click to Expand ▾]</span>
+            </div>
+            
+            <div class="cot-drawer" id="cotDrawer" style="display: none;">
+              <div class="cot-node">
+                <div class="cot-node-header">
+                  <span class="cot-step-pill">STEP 1</span>
+                  <span class="cot-node-title">Axiomatic Decomposition</span>
+                </div>
+                <div class="cot-node-content" id="cotAxiom">...</div>
+              </div>
+
+              <div class="cot-node">
+                <div class="cot-node-header">
+                  <span class="cot-step-pill highlight">STEP 2</span>
+                  <span class="cot-node-title">Dennett-Rapoport Charitable Steelman</span>
+                </div>
+                <div class="cot-node-content" id="cotRapoport">...</div>
+              </div>
+
+              <div class="cot-node">
+                <div class="cot-node-header">
+                  <span class="cot-step-pill">STEP 3</span>
+                  <span class="cot-node-title">Systemic Counter-Causal Mechanism</span>
+                </div>
+                <div class="cot-node-content" id="cotMechanism">...</div>
+              </div>
+
+              <div class="cot-node">
+                <div class="cot-node-header">
+                  <span class="cot-step-pill warning">STEP 4</span>
+                  <span class="cot-node-title">Popperian Falsification Criterion</span>
+                </div>
+                <div class="cot-node-content" id="cotPopper">...</div>
+              </div>
+
+              <div class="cot-node">
+                <div class="cot-node-header">
+                  <span class="cot-step-pill accent">STEP 5</span>
+                  <span class="cot-node-title">Irreducible Epistemic Dilemma</span>
+                </div>
+                <div class="cot-node-content" id="cotDilemma">...</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Engagement Sparring Action -->
           <div class="engagement-response-chamber">
             <div class="response-title">HOW DO YOU ENGAGE WITH THIS COUNTER-ARGUMENT?</div>
@@ -704,6 +758,89 @@
                 <div style="color: #64748b; font-size: 12px;">Click Predict to inspect model logits, Platt calibration, and extracted TF-IDF features.</div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About & Architecture Modal -->
+    <div class="classic-modal-overlay" id="aboutModal" style="display: none;">
+      <div class="classic-modal-dialog about-modal-dialog">
+        <div class="modal-top">
+          <div class="modal-heading">
+            <span>📖 ABOUT ECHO CHAMBER BREAKER &amp; ARCHITECTURE</span>
+            <span class="modal-badge">DECISION ARCHITECTURE V1.0</span>
+          </div>
+          <button id="closeAboutModalBtn" class="modal-close-icon" title="Close About">✕</button>
+        </div>
+
+        <div class="modal-content-area about-content-area">
+          <!-- 1. Mission / Problem Statement -->
+          <div class="about-hero-box">
+            <div class="about-hero-title">The Anti-Sycophant Epistemic Firewall for Amazon Bedrock &amp; Alexa+</div>
+            <p class="about-hero-p">
+              Modern frontier models are fine-tuned via RLHF to be polite, conversational, and accommodating. When users articulate polarized or unexamined convictions, standard chatbots become sycophantic yes-men ("You're completely right!"), compounding cognitive echo chambers.
+            </p>
+            <p class="about-hero-p">
+              <strong>Echo Chamber Breaker</strong> turns this dynamic upside down: it operates as a rigorous Socratic sparring partner. Using Model Context Protocol (MCP) and Amazon Bedrock, it charitably reconstructs the strongest possible opposing argument (Steelmanning), identifies cognitive blind spots, and logs intellectual humility in a tamper-proof append-only ledger.
+            </p>
+          </div>
+
+          <!-- 2. The 5 Pillars Architecture -->
+          <div class="about-section-heading">🏛️ The 5-Pillar System Architecture</div>
+          <div class="about-pillars-grid">
+            <div class="about-pillar-card">
+              <div class="pillar-icon">🚪</div>
+              <div class="pillar-name">1. Normative Stance Gate</div>
+              <div class="pillar-desc">Prevents hallucinating convictions on greetings, questions, or neutral facts with zero score tampering.</div>
+            </div>
+            <div class="about-pillar-card">
+              <div class="pillar-icon">🧠</div>
+              <div class="pillar-name">2. Amazon Bedrock Cloud Models</div>
+              <div class="pillar-desc">Deep dialectical reasoning powered by Claude 3.5 Sonnet v2 and Amazon Nova Pro with strict JSON schema outputs.</div>
+            </div>
+            <div class="about-pillar-card">
+              <div class="pillar-icon">📡</div>
+              <div class="pillar-name">3. Model Context Protocol (MCP)</div>
+              <div class="pillar-desc">Self-hosted Streamable HTTP + SSE router exposing 9 specialized epistemic tools to any client agent or Alexa voice skill.</div>
+            </div>
+            <div class="about-pillar-card">
+              <div class="pillar-icon">📊</div>
+              <div class="pillar-name">4. Epistemic ML Platt Calibration</div>
+              <div class="pillar-desc">Regularized Softmax model reducing Expected Calibration Error (ECE) by 82% to prevent overconfident AI judgments.</div>
+            </div>
+            <div class="about-pillar-card">
+              <div class="pillar-icon">📜</div>
+              <div class="pillar-name">5. Append-Only Honesty Ledger</div>
+              <div class="pillar-desc">Tamper-proof event journal tracking concessions, cognitive fallacies, and real-time score calibration.</div>
+            </div>
+          </div>
+
+          <!-- 3. Socratic Reasoning Framework -->
+          <div class="about-section-heading">⚖️ Philosophical Epistemic Framework</div>
+          <div class="about-philosophy-grid">
+            <div class="phil-box">
+              <div class="phil-title">Rapoport's First Rule</div>
+              <div class="phil-desc">"Re-express your target's position so clearly, vividly, and fairly that your target says: 'Thanks, I wish I'd thought of putting it that way.'"</div>
+            </div>
+            <div class="phil-box">
+              <div class="phil-title">Popperian Falsification</div>
+              <div class="phil-desc">A belief only holds intellectual merit if the speaker can articulate what empirical evidence or discovery would lead them to revise it.</div>
+            </div>
+            <div class="phil-box">
+              <div class="phil-title">Alexa Voice Brevity (&le; 40 words)</div>
+              <div class="phil-desc">Auditory cognition requires crisp, bounded summaries for Alexa voice users, while screens display multi-dimensional pillars.</div>
+            </div>
+          </div>
+
+          <!-- 4. Quick-Start for Judges & Developers -->
+          <div class="about-section-heading">⚡ Developer &amp; Judge Verification</div>
+          <div class="about-code-box">
+# 1. Inspect MCP Tools via Streamable HTTP JSON-RPC
+curl -X POST http://localhost:3000/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# 2. Call Steelman Tool
+curl -X POST http://localhost:3000/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"steelman","arguments":{"statement":"Remote work destroys company culture"}}}'
           </div>
         </div>
       </div>

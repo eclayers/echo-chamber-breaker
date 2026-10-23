@@ -45,6 +45,15 @@ export interface StanceAnalysis {
   ml_features?: { feature: string; weight: number }[];
   calibrated_probability?: number;
   matched_domain?: string;
+  reasoning_chain?: EpistemicReasoningChain;
+}
+
+export interface EpistemicReasoningChain {
+  axiomaticDecomposition: string; // Hidden normative axiom anchoring the statement
+  charitableReconstruction: string; // Dennett-Rapoport Rule: Most charitable steelman of user concern
+  systemicMechanism: string; // Cause/effect dynamic sustaining the counter-position
+  popperianFalsificationCriterion: string; // What empirical fact would falsify the counter-thesis
+  epistemicDilemma: string; // Irreducible trade-off that cannot be avoided
 }
 
 export interface SteelmanResponse {
@@ -63,6 +72,7 @@ export interface SteelmanResponse {
   socratic_inquiry?: string; // one sharp question that exposes a tension (spec 4.2)
   challengeId?: string; // uuid
   challenge_id?: string; // spec 4.2 alias
+  reasoning_chain?: EpistemicReasoningChain;
 }
 
 export type EngagementQuality =

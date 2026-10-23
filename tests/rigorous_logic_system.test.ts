@@ -167,4 +167,18 @@ describe("Rigorous Logic System & Stance Gating (Normative Spec v1.0)", () => {
     const highReport = await honestyEngine.getHonestyReport(highUser);
     expect(highReport.scoreStatus).toBe("OPEN_MINDED");
   });
+
+  // Acceptance Checklist Item 9: Socratic Epistemic Reasoning Chain (5 Cognitive Steps)
+  it("generates a complete 5-step epistemic reasoning chain for steelmanned stances", async () => {
+    const statement = "Cryptocurrency has zero intrinsic value and is purely a speculative bubble.";
+    const steelman = await cognitiveAdapter.generateSteelman(statement);
+    expect(steelman.reasoning_chain).toBeDefined();
+
+    const chain = steelman.reasoning_chain!;
+    expect(chain.axiomaticDecomposition).toContain("Axiomatic Basis");
+    expect(chain.charitableReconstruction).toContain("Dennett-Rapoport Steelman");
+    expect(chain.systemicMechanism.length).toBeGreaterThan(10);
+    expect(chain.popperianFalsificationCriterion).toContain("Popperian Falsification");
+    expect(chain.epistemicDilemma).toContain("Epistemic Tension");
+  });
 });

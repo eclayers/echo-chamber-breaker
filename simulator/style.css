@@ -2543,3 +2543,226 @@ body {
   font-family: monospace;
 }
 
+/* ==========================================================================
+   FORMAL DIALECTICAL REASONING CHAIN (SOCRATIC CoT)
+   ========================================================================== */
+.socratic-cot-chamber {
+  background: rgba(10, 16, 29, 0.95);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  margin: 16px 0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.cot-toggle-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: rgba(139, 92, 246, 0.08);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.cot-toggle-bar:hover {
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.cot-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #c4b5fd;
+}
+
+.cot-badge {
+  background: rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #ddd6fe;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.cot-indicator {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.cot-drawer {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cot-node {
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 3px solid #8b5cf6;
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+}
+
+.cot-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cot-step-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+.cot-step-pill.highlight {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.cot-step-pill.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.cot-step-pill.accent {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.cot-node-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.cot-node-content {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   ABOUT & ARCHITECTURE MODAL
+   ========================================================================== */
+.about-modal-dialog {
+  max-width: 900px;
+}
+
+.about-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-hero-box {
+  background: linear-gradient(135deg, rgba(255, 153, 0, 0.1), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(255, 153, 0, 0.3);
+  border-radius: 10px;
+  padding: 18px 22px;
+}
+
+.about-hero-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ff9900;
+  margin-bottom: 8px;
+}
+
+.about-hero-p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.about-section-heading {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #f8fafc;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.about-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.about-pillar-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.about-pillar-card .pillar-icon {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.about-pillar-card .pillar-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.about-pillar-card .pillar-desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.about-philosophy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.phil-box {
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.phil-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff9900;
+  margin-bottom: 4px;
+}
+
+.phil-desc {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.about-code-box {
+  background: rgba(2, 6, 23, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #38bdf8;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+

@@ -587,6 +587,26 @@ async function handleSteelman() {
 
     epistemicQuestionText.textContent = steelman.socratic_inquiry || steelman.epistemicQuestion;
 
+    // Render Socratic Reasoning Chain (CoT)
+    const cotAxiom = document.getElementById("cotAxiom");
+    const cotRapoport = document.getElementById("cotRapoport");
+    const cotMechanism = document.getElementById("cotMechanism");
+    const cotPopper = document.getElementById("cotPopper");
+    const cotDilemma = document.getElementById("cotDilemma");
+    const socraticCotChamber = document.getElementById("socraticCotChamber");
+
+    if (steelman.reasoning_chain) {
+      if (socraticCotChamber) socraticCotChamber.style.display = "block";
+      const chain = steelman.reasoning_chain;
+      if (cotAxiom) cotAxiom.textContent = chain.axiomaticDecomposition;
+      if (cotRapoport) cotRapoport.textContent = chain.charitableReconstruction;
+      if (cotMechanism) cotMechanism.textContent = chain.systemicMechanism;
+      if (cotPopper) cotPopper.textContent = chain.popperianFalsificationCriterion;
+      if (cotDilemma) cotDilemma.textContent = chain.epistemicDilemma;
+    } else if (socraticCotChamber) {
+      socraticCotChamber.style.display = "none";
+    }
+
     // Reset debate arena and feedback if they belonged to an earlier statement
     const debateCardEl = document.getElementById("debateCard");
     if (debateCardEl) debateCardEl.style.display = "none";
@@ -908,18 +928,41 @@ function initializeEventListeners() {
   viewBenchmarkBtn.addEventListener("click", handleViewBenchmark);
   closeBenchmarkModalBtn.addEventListener("click", () => (benchmarkModal.style.display = "none"));
 
-  // How It Works button
+  // Socratic CoT Reasoning Chain Drawer Toggle
+  const cotToggleBar = document.getElementById("cotToggleBar");
+  const cotDrawer = document.getElementById("cotDrawer");
+  const cotIndicator = document.getElementById("cotIndicator");
+  if (cotToggleBar && cotDrawer) {
+    cotToggleBar.addEventListener("click", () => {
+      const isClosed = cotDrawer.style.display === "none";
+      cotDrawer.style.display = isClosed ? "flex" : "none";
+      if (cotIndicator) cotIndicator.textContent = isClosed ? "[Click to Collapse ▴]" : "[Click to Expand ▾]";
+    });
+  }
+
+  // About & Architecture Modal
+  const aboutModal = document.getElementById("aboutModal");
+  const closeAboutModalBtn = document.getElementById("closeAboutModalBtn");
   const toggleHowItWorksBtn = document.getElementById("toggleHowItWorksBtn");
-  const howItWorksDeck = document.getElementById("howItWorksDeck");
-  if (toggleHowItWorksBtn && howItWorksDeck) {
+
+  if (toggleHowItWorksBtn && aboutModal) {
     toggleHowItWorksBtn.addEventListener("click", () => {
-      howItWorksDeck.scrollIntoView({ behavior: "smooth", block: "center" });
-      howItWorksDeck.style.borderColor = "var(--accent-primary)";
-      howItWorksDeck.style.boxShadow = "0 0 20px var(--accent-primary-glow)";
-      setTimeout(() => {
-        howItWorksDeck.style.borderColor = "";
-        howItWorksDeck.style.boxShadow = "";
-      }, 1800);
+      aboutModal.style.display = "flex";
+      playEchoChime("wake");
+    });
+  }
+
+  if (closeAboutModalBtn && aboutModal) {
+    closeAboutModalBtn.addEventListener("click", () => {
+      aboutModal.style.display = "none";
+    });
+  }
+
+  if (aboutModal) {
+    aboutModal.addEventListener("click", (e) => {
+      if (e.target === aboutModal) {
+        aboutModal.style.display = "none";
+      }
     });
   }
 

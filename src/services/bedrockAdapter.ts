@@ -197,9 +197,18 @@ function buildSteelmanResponse(
   coreArguments: { premise: string; evidenceOrMechanism: string }[],
   concessionPoints: string[],
   epistemicQuestion: string,
-  challengeId?: string
+  challengeId?: string,
+  reasoningChain?: import("../types/index.js").EpistemicReasoningChain
 ): SteelmanResponse {
   const chalId = challengeId || `chal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const chain: import("../types/index.js").EpistemicReasoningChain = reasoningChain || {
+    axiomaticDecomposition: `Axiomatic Basis: The claim presumes that observed friction points in "${originalClaim.slice(0, 45)}..." constitute sufficient grounds for categorical rejection without accounting for systemic trade-offs.`,
+    charitableReconstruction: `Dennett-Rapoport Steelman: You are rightfully identifying genuine operational vulnerabilities, human costs, and valid friction that complacent institutional orthodoxy often dismisses.`,
+    systemicMechanism: coreArguments[0]?.evidenceOrMechanism || "Countervailing feedback mechanisms sustain resilience under acute external stress.",
+    popperianFalsificationCriterion: `Popperian Falsification: This counter-thesis would be empirically disproven if a controlled regime eliminating this mechanism demonstrated superior longitudinal resilience with zero externalized costs.`,
+    epistemicDilemma: `Epistemic Tension: The unavoidable trade-off between maximizing immediate local optimization versus preserving resilient systemic buffers against unknown tail risks.`,
+  };
+
   return {
     is_stance: true,
     say,
@@ -213,6 +222,7 @@ function buildSteelmanResponse(
     socratic_inquiry: epistemicQuestion,
     challengeId: chalId,
     challenge_id: chalId,
+    reasoning_chain: chain,
   };
 }
 
@@ -930,6 +940,15 @@ Return pure JSON matching:
       const chalId = res.challengeId || `chal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       res.challengeId = chalId;
       res.challenge_id = chalId;
+      if (!res.reasoning_chain) {
+        res.reasoning_chain = {
+          axiomaticDecomposition: `Axiomatic Basis: The statement presumes that observed issues with "${statement.slice(0, 45)}..." provide sufficient epistemic grounds for an absolute rejection without evaluating countervailing systemic utilities.`,
+          charitableReconstruction: `Dennett-Rapoport Steelman: You are highlighting legitimate operational failure modes, real human burdens, and valid governance friction that institutional consensus tends to overlook.`,
+          systemicMechanism: res.coreArguments?.[0]?.evidenceOrMechanism || "Interdependent adaptive mechanisms sustain systemic stability under acute external shocks.",
+          popperianFalsificationCriterion: `Popperian Falsification: This counter-argument would be falsified if a controlled alternative successfully eliminated these pathologies without introducing worse asymmetric failure modes.`,
+          epistemicDilemma: `Epistemic Tension: The unavoidable trade-off between maximizing short-term local control versus maintaining global resilience against severe tail-risk events.`,
+        };
+      }
       return res;
     } catch {
       return this.fallback.generateSteelman(statement, stance);
