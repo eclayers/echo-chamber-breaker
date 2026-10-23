@@ -36,6 +36,29 @@ export interface HonestyReportPayload {
 }
 
 export class HonestyEngine {
+  private userLocks = new Map<string, Promise<void>>();
+
+  private async withUserLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.userLocks.get(userId) || Promise.resolve();
+    let release: () => void;
+    const current = new Promise<void>((r) => {
+      release = r;
+    });
+    this.userLocks.set(
+      userId,
+      prev.then(() => current)
+    );
+    try {
+      await prev;
+      return await fn();
+    } finally {
+      release!();
+      if (this.userLocks.get(userId) === current) {
+        this.userLocks.delete(userId);
+      }
+    }
+  }
+
   private clampScore(score: number): number {
     return Number(Math.min(100.0, Math.max(0.0, score)).toFixed(1));
   }
@@ -46,74 +69,76 @@ export class HonestyEngine {
     topic?: string,
     relatedChallengeId?: string
   ): Promise<{ event: HonestyEvent; profile: HonestyProfile }> {
-    const profile = await sessionStore.getProfile(userId);
+    return this.withUserLock(userId, async () => {
+      const profile = await sessionStore.getProfile(userId);
 
-    const oldScore = profile.currentScore;
-    const newScore = this.clampScore(oldScore + assessment.scoreDelta);
+      const oldScore = profile.currentScore;
+      const newScore = this.clampScore(oldScore + assessment.scoreDelta);
 
-    profile.currentScore = newScore;
-    profile.totalChallenges++;
-    profile.engagedCount++;
+      profile.currentScore = newScore;
+      profile.totalChallenges++;
+      profile.engagedCount++;
 
-    if (assessment.quality === "CONCESSION") {
-      profile.concessionCount++;
-    }
-
-    profile.engagementRate = Number(
-      (profile.engagedCount / Math.max(1, profile.totalChallenges)).toFixed(2)
-    );
-    profile.concessionRate = Number(
-      (profile.concessionCount / Math.max(1, profile.engagedCount)).toFixed(2)
-    );
-
-    // Update topic metrics
-    if (topic) {
-      if (!profile.topicMetrics[topic]) {
-        profile.topicMetrics[topic] = {
-          topic,
-          encounters: 0,
-          averageEngagement: 0,
-          opennessScore: 50,
-        };
-      }
-      const tm = profile.topicMetrics[topic];
-      tm.encounters++;
-      tm.averageEngagement = Number(
-        ((tm.averageEngagement * (tm.encounters - 1) + assessment.counterQualityScore) / tm.encounters).toFixed(1)
-      );
       if (assessment.quality === "CONCESSION") {
-        tm.opennessScore = Math.min(100, tm.opennessScore + 10);
+        profile.concessionCount++;
       }
-    }
 
-    const event: HonestyEvent = {
-      id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      userId,
-      timestamp: new Date().toISOString(),
-      eventType:
-        assessment.quality === "CONCESSION"
-          ? "CONCESSION_GRANTED"
-          : "ENGAGEMENT_RECORDED",
-      delta: assessment.scoreDelta,
-      resultingScore: newScore,
-      reason: assessment.reason,
-      relatedChallengeId,
-      metadata: {
-        quality: assessment.quality,
-        counterQualityScore: assessment.counterQualityScore,
-        topic,
-      },
-    };
+      profile.engagementRate = Number(
+        (profile.engagedCount / Math.max(1, profile.totalChallenges)).toFixed(2)
+      );
+      profile.concessionRate = Number(
+        (profile.concessionCount / Math.max(1, profile.engagedCount)).toFixed(2)
+      );
 
-    profile.recentEvents.unshift(event);
-    if (profile.recentEvents.length > 20) {
-      profile.recentEvents = profile.recentEvents.slice(0, 20);
-    }
+      // Update topic metrics
+      if (topic) {
+        if (!profile.topicMetrics[topic]) {
+          profile.topicMetrics[topic] = {
+            topic,
+            encounters: 0,
+            averageEngagement: 0,
+            opennessScore: 50,
+          };
+        }
+        const tm = profile.topicMetrics[topic];
+        tm.encounters++;
+        tm.averageEngagement = Number(
+          ((tm.averageEngagement * (tm.encounters - 1) + assessment.counterQualityScore) / tm.encounters).toFixed(1)
+        );
+        if (assessment.quality === "CONCESSION") {
+          tm.opennessScore = Math.min(100, tm.opennessScore + 10);
+        }
+      }
 
-    await sessionStore.saveProfile(profile);
-    await sessionStore.appendEvent(event);
+      const event: HonestyEvent = {
+        id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        userId,
+        timestamp: new Date().toISOString(),
+        eventType:
+          assessment.quality === "CONCESSION"
+            ? "CONCESSION_GRANTED"
+            : "ENGAGEMENT_RECORDED",
+        delta: assessment.scoreDelta,
+        resultingScore: newScore,
+        reason: assessment.reason,
+        relatedChallengeId,
+        metadata: {
+          quality: assessment.quality,
+          counterQualityScore: assessment.counterQualityScore,
+          topic,
+        },
+      };
 
-    return { event, profile };
+      profile.recentEvents.unshift(event);
+      if (profile.recentEvents.length > 20) {
+        profile.recentEvents = profile.recentEvents.slice(0, 20);
+      }
+
+      await sessionStore.saveProfile(profile);
+      await sessionStore.appendEvent(event);
+
+      return { event, profile };
+    });
   }
 
   async applyDismissal(
@@ -121,38 +146,40 @@ export class HonestyEngine {
     reason: string = "Dismissed steelman challenge without substantive engagement.",
     relatedChallengeId?: string
   ): Promise<{ event: HonestyEvent; profile: HonestyProfile }> {
-    const profile = await sessionStore.getProfile(userId);
+    return this.withUserLock(userId, async () => {
+      const profile = await sessionStore.getProfile(userId);
 
-    const delta = -3.0;
-    const newScore = this.clampScore(profile.currentScore + delta);
+      const delta = -3.0;
+      const newScore = this.clampScore(profile.currentScore + delta);
 
-    profile.currentScore = newScore;
-    profile.totalChallenges++;
-    profile.dismissedCount++;
-    profile.engagementRate = Number(
-      (profile.engagedCount / Math.max(1, profile.totalChallenges)).toFixed(2)
-    );
+      profile.currentScore = newScore;
+      profile.totalChallenges++;
+      profile.dismissedCount++;
+      profile.engagementRate = Number(
+        (profile.engagedCount / Math.max(1, profile.totalChallenges)).toFixed(2)
+      );
 
-    const event: HonestyEvent = {
-      id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      userId,
-      timestamp: new Date().toISOString(),
-      eventType: "CHALLENGE_DISMISSED",
-      delta,
-      resultingScore: newScore,
-      reason,
-      relatedChallengeId,
-    };
+      const event: HonestyEvent = {
+        id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        userId,
+        timestamp: new Date().toISOString(),
+        eventType: "CHALLENGE_DISMISSED",
+        delta,
+        resultingScore: newScore,
+        reason,
+        relatedChallengeId,
+      };
 
-    profile.recentEvents.unshift(event);
-    if (profile.recentEvents.length > 20) {
-      profile.recentEvents = profile.recentEvents.slice(0, 20);
-    }
+      profile.recentEvents.unshift(event);
+      if (profile.recentEvents.length > 20) {
+        profile.recentEvents = profile.recentEvents.slice(0, 20);
+      }
 
-    await sessionStore.saveProfile(profile);
-    await sessionStore.appendEvent(event);
+      await sessionStore.saveProfile(profile);
+      await sessionStore.appendEvent(event);
 
-    return { event, profile };
+      return { event, profile };
+    });
   }
 
   async calibrateBaseline(
@@ -160,26 +187,28 @@ export class HonestyEngine {
     baselineScore: number = 50.0,
     notes: string = "Manual baseline reset/calibration"
   ): Promise<{ event: HonestyEvent; profile: HonestyProfile }> {
-    const profile = await sessionStore.getProfile(userId);
-    const clamped = this.clampScore(baselineScore);
-    const delta = Number((clamped - profile.currentScore).toFixed(1));
+    return this.withUserLock(userId, async () => {
+      const profile = await sessionStore.getProfile(userId);
+      const clamped = this.clampScore(baselineScore);
+      const delta = Number((clamped - profile.currentScore).toFixed(1));
 
-    profile.currentScore = clamped;
-    const event: HonestyEvent = {
-      id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      userId,
-      timestamp: new Date().toISOString(),
-      eventType: "CALIBRATION_BASELINE",
-      delta,
-      resultingScore: clamped,
-      reason: notes,
-    };
+      profile.currentScore = clamped;
+      const event: HonestyEvent = {
+        id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        userId,
+        timestamp: new Date().toISOString(),
+        eventType: "CALIBRATION_BASELINE",
+        delta,
+        resultingScore: clamped,
+        reason: notes,
+      };
 
-    profile.recentEvents.unshift(event);
-    await sessionStore.saveProfile(profile);
-    await sessionStore.appendEvent(event);
+      profile.recentEvents.unshift(event);
+      await sessionStore.saveProfile(profile);
+      await sessionStore.appendEvent(event);
 
-    return { event, profile };
+      return { event, profile };
+    });
   }
 
   async getHonestyReport(userId: string): Promise<HonestyReportPayload> {

@@ -308,6 +308,190 @@ async function runStressTest() {
   }
 
   // -------------------------------------------------------------------------
+  // PHASE 8: Rhetorical Conviction Questions vs. Pure Inquiries
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 8: Testing Rhetorical Convictions Framed as Questions...");
+  {
+    const rhetoricalQueries = [
+      {
+        text: "Isn't it completely obvious that modern monetary theory is economic suicide?",
+        isStance: true,
+        reason: "Rhetorical question prefix with extreme normative term 'economic suicide'",
+      },
+      {
+        text: "Why would anyone defend centralized monopolies when they are clearly destroying human privacy?",
+        isStance: true,
+        reason: "Indignant rhetorical question with strong normative claim",
+      },
+      {
+        text: "Don't you agree that censorship is destroying open democratic discourse?",
+        isStance: true,
+        reason: "Leading rhetorical question asserting democratic destruction",
+      },
+      {
+        text: "What is the capital of Australia and what is its population?",
+        isStance: false,
+        reason: "Pure factual question without normative thesis",
+      },
+    ];
+
+    for (const q of rhetoricalQueries) {
+      const { payload } = await callTool("analyze_stance", {
+        statement: q.text,
+        userId: "stress-rhetorical-user",
+      });
+      assert(
+        payload.structuredContent.is_stance === q.isStance,
+        `Classified "${q.text.slice(0, 45)}..." correctly as is_stance: ${q.isStance} (${q.reason})`
+      );
+      if (q.isStance) {
+        assert(payload.structuredContent.confidence >= 0.65, `Confidence >= 0.65 for rhetorical belief`);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 9: In-Memory LRU Cache Acceleration
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 9: Testing In-Memory LRU Caching Latency Acceleration...");
+  {
+    const cacheTestStatement = `Decentralized zero-knowledge credentials protect privacy while preserving fraud prevention in global finance (${Date.now()}).`;
+    
+    // Cold call
+    const t0 = performance.now();
+    const { payload: coldPayload } = await callTool("analyze_stance", {
+      statement: cacheTestStatement,
+      userId: "cache-user",
+    });
+    const coldDuration = performance.now() - t0;
+    assert(coldPayload.structuredContent.is_stance === true, "Cold query analyzed correctly");
+
+    // Warm call (Cache Hit)
+    const t1 = performance.now();
+    const { payload: warmPayload } = await callTool("analyze_stance", {
+      statement: cacheTestStatement,
+      userId: "cache-user",
+    });
+    const warmDuration = performance.now() - t1;
+
+    console.log(`     Cold Query: ${Math.round(coldDuration)}ms | Warm Cache Hit: ${Math.round(warmDuration)}ms`);
+    assert(warmDuration <= coldDuration + 5, `Cache hit latency is rapid (${Math.round(warmDuration)}ms)`);
+    assert(warmPayload.structuredContent.detectedTopic === coldPayload.structuredContent.detectedTopic, "Warm result matches cold result");
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 10: Input Sanitization & Adversarial Buffer Boundaries
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 10: Testing Input Sanitization & Adversarial Bounds...");
+  {
+    // Zero-width characters and control tokens
+    const dirtyClaim = "\u200B\u200C\uFEFF**Universal Basic Income eliminates poverty traps in modern post-industrial economies.**\u200D\u200E";
+    const { payload: sanitized } = await callTool("analyze_stance", {
+      statement: dirtyClaim,
+      userId: "sanitization-user",
+    });
+    assert(sanitized.structuredContent.is_stance === true, "Sanitized input with zero-width characters processed cleanly");
+
+    // Giant 8000-character payload
+    const giantClaim = "Strict copyright laws protect creators from systemic exploitation. ".repeat(150);
+    const { payload: giantResult } = await callTool("steelman", {
+      statement: giantClaim,
+      userId: "sanitization-user",
+    });
+    assert(giantResult.structuredContent.is_stance === true, "8,000 character oversized statement bounded and processed without crash");
+    const words = giantResult.say.trim().split(/\s+/).length;
+    assert(words <= 40, `Steelman say strictly honors <= 40 words even with giant input (${words} words)`);
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 11: JSON-RPC 2.0 Batch Requests
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 11: Testing JSON-RPC 2.0 Batch Tool Execution...");
+  {
+    const batchRequests = [
+      {
+        jsonrpc: "2.0",
+        id: "batch-req-1",
+        method: "ping",
+      },
+      {
+        jsonrpc: "2.0",
+        id: "batch-req-2",
+        method: "tools/call",
+        params: {
+          name: "challenge_me",
+          arguments: { userId: "batch-harness-user" },
+        },
+      },
+      {
+        jsonrpc: "2.0",
+        id: "batch-req-3",
+        method: "tools/call",
+        params: {
+          name: "honesty_report",
+          arguments: { userId: "batch-harness-user" },
+        },
+      },
+      {
+        jsonrpc: "2.0",
+        id: "batch-req-4",
+        method: "tools/call",
+        params: {
+          name: "analyze_stance",
+          arguments: {
+            statement: "Artificial intelligence alignment is an existential priority for civilization.",
+            userId: "batch-harness-user",
+          },
+        },
+      },
+    ];
+
+    const t0 = performance.now();
+    const batchRes = await fetch(`${BASE_URL}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batchRequests),
+    });
+    const batchElapsed = Math.round(performance.now() - t0);
+    const batchData = await batchRes.json();
+
+    assert(batchRes.status === 200, "Batch POST /mcp returns 200 OK");
+    assert(Array.isArray(batchData), "Batch response is a JSON array");
+    assert(batchData.length === 4, `Batch returned all 4 responses in single round-trip (${batchElapsed}ms)`);
+    assert(batchData[0].id === "batch-req-1" && !batchData[0].error, "Batch item 1 (ping) resolved");
+    assert(batchData[1].id === "batch-req-2" && batchData[1].result, "Batch item 2 (challenge_me) resolved");
+    assert(batchData[2].id === "batch-req-3" && batchData[2].result, "Batch item 3 (honesty_report) resolved");
+    assert(batchData[3].id === "batch-req-4" && batchData[3].result, "Batch item 4 (analyze_stance) resolved");
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 12: High-Concurrency User Mutex Lock Ledger Stress Test
+  // -------------------------------------------------------------------------
+  console.log("\n📌 PHASE 12: Testing Per-User Mutex Lock Serialization (50 Parallel Mutations)...");
+  {
+    const lockedUserId = `serialized-mutex-user-${Date.now()}`;
+    const mutationCount = 50;
+
+    // Fire 50 simultaneous calibrate_baseline requests on the exact same user
+    const mutationPromises = Array.from({ length: mutationCount }).map((_, idx) => {
+      return callTool("calibrate_baseline", {
+        userId: lockedUserId,
+        baselineScore: 50.0 + (idx % 2 === 0 ? 0.5 : -0.5),
+        reason: `Concurrent mutex update #${idx}`,
+      }, `mutex-${idx}`);
+    });
+
+    const mutationResults = await Promise.all(mutationPromises);
+    assert(mutationResults.length === mutationCount, `All ${mutationCount} concurrent requests resolved without deadlock`);
+
+    // Verify user report
+    const { payload: finalReport } = await callTool("honesty_report", { userId: lockedUserId });
+    assert(finalReport.structuredContent.currentScore >= 0 && finalReport.structuredContent.currentScore <= 100, "Final score is within valid bounds [0, 100]");
+    assert(finalReport.structuredContent.recentHistory.length >= 10, "Ledger history cleanly preserved across all concurrent writes");
+    console.log(`     50 parallel writes serialized seamlessly. Final score: ${finalReport.structuredContent.currentScore}`);
+  }
+
+  // -------------------------------------------------------------------------
   // FINAL REPORT
   // -------------------------------------------------------------------------
   console.log("\n=======================================================================");

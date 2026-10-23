@@ -21,8 +21,94 @@ export interface CognitiveAdapter {
 }
 
 /**
+ * Sanitizes and normalizes input for robust real-world NLP and model processing.
+ * Strips zero-width/control characters, unwraps quotes/markdown, collapses whitespace,
+ * and caps excessive length to protect model buffers.
+ */
+export function sanitizeAndNormalizeInput(raw: string): string {
+  if (!raw) return "";
+  let clean = raw.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, "");
+  clean = clean.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+  clean = clean.trim();
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if ((clean.startsWith("**") && clean.endsWith("**")) || (clean.startsWith("__") && clean.endsWith("__"))) {
+    clean = clean.slice(2, -2).trim();
+  }
+  clean = clean.replace(/\s+/g, " ");
+  if (clean.length > 2000) {
+    clean = clean.slice(0, 2000).replace(/\s+\S*$/, "") + "...";
+  }
+  return clean;
+}
+
+/**
+ * Strict Alexa voice brevity contract enforcement (<= 40 words).
+ * Clamps output at word boundaries with clean ellipsis.
+ */
+export function enforceVoiceBrevity(say: string, maxWords: number = 40): string {
+  if (!say) return "Here is the opposing perspective for your consideration.";
+  const clean = say.replace(/\s+/g, " ").trim();
+  const words = clean.split(" ");
+  if (words.length <= maxWords) return clean;
+  const sliced = words.slice(0, maxWords - 1).join(" ");
+  const trimmed = sliced.replace(/[,;:\s-]+$/, "");
+  return trimmed + "...";
+}
+
+/**
+ * High-performance in-memory LRU Cache with TTL for sub-millisecond repeated queries
+ * and Bedrock rate-limiting protection under high load.
+ */
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+export class EpistemicLRUCache<T> {
+  private map = new Map<string, CacheEntry<T>>();
+  constructor(private readonly maxEntries: number = 500, private readonly ttlMs: number = 15 * 60 * 1000) {}
+
+  get(key: string): T | undefined {
+    const entry = this.map.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.map.delete(key);
+      return undefined;
+    }
+    // Refresh LRU order
+    this.map.delete(key);
+    this.map.set(key, entry);
+    return entry.value;
+  }
+
+  set(key: string, value: T): void {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.maxEntries) {
+      const oldestKey = this.map.keys().next().value;
+      if (oldestKey) this.map.delete(oldestKey);
+    }
+    this.map.set(key, { value, expiresAt: Date.now() + this.ttlMs });
+  }
+
+  clear(): void {
+    this.map.clear();
+  }
+
+  get size(): number {
+    return this.map.size;
+  }
+}
+
+export const stanceCache = new EpistemicLRUCache<StanceAnalysis>(500, 15 * 60 * 1000);
+export const steelmanCache = new EpistemicLRUCache<SteelmanResponse>(500, 15 * 60 * 1000);
+
+/**
  * Normative Stance Gate Classification (Logic Spec v1.0 Section 2)
- * Prevents inventing convictions on greetings, questions, or neutral statements.
+ * Prevents inventing convictions on greetings, questions, or neutral statements,
+ * while accurately recognizing rhetorical convictions framed as questions.
  */
 export function classifyInput(statement: string): {
   is_stance: boolean;
@@ -30,7 +116,7 @@ export function classifyInput(statement: string): {
   reason: string;
   say: string;
 } {
-  const trimmed = (statement || "").trim();
+  const trimmed = sanitizeAndNormalizeInput(statement);
   const lower = trimmed.toLowerCase();
   const words = trimmed.split(/\s+/).filter(Boolean);
 
@@ -97,7 +183,51 @@ export function classifyInput(statement: string): {
     };
   }
 
-  // 4. Questions (Pure interrogatives seeking information, not asserting a view)
+  // 4. Rhetorical Questions expressing strong normative convictions
+  const rhetoricalPhrases = [
+    "isn't it obvious",
+    "isn't it clear",
+    "is it not obvious",
+    "is it not clear",
+    "don't you think",
+    "don't you agree",
+    "how can anyone deny",
+    "how can anyone believe",
+    "why would anyone believe",
+    "why do people still deny",
+    "why are we still",
+    "why do people ignore",
+    "how is it that people",
+  ];
+  const isRhetoricalStance = rhetoricalPhrases.some((phrase) => lower.startsWith(phrase));
+  if (isRhetoricalStance) {
+    return {
+      is_stance: true,
+      category: "STANCE",
+      reason: "Rhetorical question expressing a strong evaluative conviction.",
+      say: "",
+    };
+  }
+
+  // 5. Questions (Pure interrogatives seeking information, not asserting a view)
+  const strongEvaluativesInQuestion = [
+    "should",
+    "must",
+    "worst",
+    "best",
+    "destroy",
+    "evil",
+    "corrupt",
+    "fraud",
+    "scam",
+    "disaster",
+    "obsolete",
+    "poisoning",
+    "ruining",
+    "suicide",
+  ];
+  const hasStrongEvaluative = strongEvaluativesInQuestion.some((w) => lower.includes(w));
+
   const isQuestion =
     (lower.startsWith("what is") ||
       lower.startsWith("what are") ||
@@ -108,11 +238,7 @@ export function classifyInput(statement: string): {
       lower.startsWith("can you explain") ||
       lower.startsWith("tell me about")) &&
     trimmed.endsWith("?") &&
-    !lower.includes("should") &&
-    !lower.includes("must") &&
-    !lower.includes("worst") &&
-    !lower.includes("best") &&
-    !lower.includes("destroy");
+    !hasStrongEvaluative;
 
   if (isQuestion) {
     return {
@@ -211,7 +337,7 @@ function buildSteelmanResponse(
 
   return {
     is_stance: true,
-    say,
+    say: enforceVoiceBrevity(say),
     originalClaim,
     opposingThesis,
     foundational_counter_thesis: opposingThesis,
@@ -236,21 +362,26 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
   }
 
   async analyzeStance(statement: string): Promise<StanceAnalysis> {
-    const gate = classifyInput(statement);
+    const cleanStatement = sanitizeAndNormalizeInput(statement);
+    const cacheKey = `stance:${cleanStatement.toLowerCase()}`;
+    const cached = stanceCache.get(cacheKey);
+    if (cached) return cached;
+
+    const gate = classifyInput(cleanStatement);
 
     // Stance Gate: If input is not a stance, do NOT invent a conviction (Axioms A1 & A2)
     if (!gate.is_stance) {
-      return {
+      const nonStanceRes: StanceAnalysis = {
         is_stance: false,
         category: gate.category,
-        originalStatement: statement,
+        originalStatement: cleanStatement,
         detectedTopic:
           gate.category === "GREETING"
             ? "Social Greeting"
             : gate.category === "QUESTION"
             ? "Inquiry"
             : "Non-Stance Input",
-        claim: statement.trim(),
+        claim: cleanStatement.trim(),
         polarity: "NEUTRAL",
         confidence: 0,
         conviction_certainty: 0,
@@ -263,8 +394,10 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
         unexamined_assumption: gate.reason,
         topic_label: gate.category,
         calibrationNotes: gate.reason,
-        say: gate.say,
+        say: enforceVoiceBrevity(gate.say),
       };
+      stanceCache.set(cacheKey, nonStanceRes);
+      return nonStanceRes;
     }
 
     const lower = statement.toLowerCase();
@@ -389,12 +522,12 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
     const emotionalChargeVal = Math.round(emotionalCharge * 100);
     const sayVoice = `Detected high conviction on ${detectedTopic}. I have identified three crucial blind spots in this position.`;
 
-    return {
+    const result: StanceAnalysis = {
       is_stance: true,
       category: "STANCE",
-      originalStatement: statement,
+      originalStatement: cleanStatement,
       detectedTopic,
-      claim: statement.trim(),
+      claim: cleanStatement.trim(),
       polarity,
       confidence: Number(confidence.toFixed(2)),
       conviction_certainty: convictionCertainty,
@@ -407,20 +540,27 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
       unexamined_assumption: coreAssumption,
       topic_label: detectedTopic,
       calibrationNotes: `Calibrated with ML Platt temperature scaling (T = ${epistemicMLTrainer.getLastTrainingResult()?.temperatureParameter || 1.0}).`,
-      say: sayVoice,
+      say: enforceVoiceBrevity(sayVoice),
       ml_features: mlPred.topFeatures,
       calibrated_probability: mlPred.calibratedConfidence,
       matched_domain: mlPred.matchedDomain,
     };
+    stanceCache.set(cacheKey, result);
+    return result;
   }
 
   async generateSteelman(statement: string, stance?: StanceAnalysis): Promise<SteelmanResponse> {
-    const analysis = stance || (await this.analyzeStance(statement));
+    const cleanStatement = sanitizeAndNormalizeInput(statement);
+    const cacheKey = `steelman:${cleanStatement.toLowerCase()}`;
+    const cached = steelmanCache.get(cacheKey);
+    if (cached) return cached;
+
+    const analysis = stance || (await this.analyzeStance(cleanStatement));
     if (!analysis.is_stance) {
-      return {
+      const nonStanceSteelman: SteelmanResponse = {
         is_stance: false,
-        say: analysis.say || "Please articulate an opinion or conviction you would like challenged.",
-        originalClaim: statement,
+        say: enforceVoiceBrevity(analysis.say || "Please articulate an opinion or conviction you would like challenged."),
+        originalClaim: cleanStatement,
         opposingThesis: "No evaluative conviction detected to steelman.",
         foundational_counter_thesis: "No evaluative conviction detected to steelman.",
         coreArguments: [],
@@ -429,6 +569,8 @@ class LocalMockCognitiveEngine implements CognitiveAdapter {
         epistemicQuestion: "What specific belief or policy conviction do you hold on this subject?",
         socratic_inquiry: "What specific belief or policy conviction do you hold on this subject?",
       };
+      steelmanCache.set(cacheKey, nonStanceSteelman);
+      return nonStanceSteelman;
     }
 
     const lower = statement.toLowerCase();
@@ -801,67 +943,88 @@ class BedrockCognitiveAdapter implements CognitiveAdapter {
     return "bedrock";
   }
 
-  private async invokeModelJSON<T>(systemPrompt: string, userMessage: string): Promise<T> {
-    try {
-      if (this.modelId.includes("claude")) {
-        const payload = {
-          anthropic_version: "bedrock-2023-05-31",
-          max_tokens: 1500,
-          temperature: 0.2,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userMessage }],
-        };
-
-        const command = new InvokeModelCommand({
-          modelId: this.modelId,
-          contentType: "application/json",
-          accept: "application/json",
-          body: JSON.stringify(payload),
-        });
-
-        const response = await this.client.send(command);
-        const decoded = new TextDecoder().decode(response.body);
-        const parsed = JSON.parse(decoded);
-        const text = parsed.content?.[0]?.text || "{}";
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonMatch ? jsonMatch[0] : text) as T;
-      } else {
-        // Amazon Nova JSON payload format
-        const payload = {
-          messages: [
-            { role: "system", content: [{ text: systemPrompt }] },
-            { role: "user", content: [{ text: userMessage }] },
-          ],
-          inferenceConfig: {
-            temperature: 0.2,
-            max_new_tokens: 1500,
-          },
-        };
-
-        const command = new InvokeModelCommand({
-          modelId: this.modelId,
-          contentType: "application/json",
-          accept: "application/json",
-          body: JSON.stringify(payload),
-        });
-
-        const response = await this.client.send(command);
-        const decoded = new TextDecoder().decode(response.body);
-        const parsed = JSON.parse(decoded);
-        const text = parsed.output?.message?.content?.[0]?.text || "{}";
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonMatch ? jsonMatch[0] : text) as T;
+  private async invokeWithRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        attempt++;
+        if (attempt > maxRetries) throw err;
+        const delay = Math.min(2000, 150 * Math.pow(2, attempt - 1)) + Math.random() * 50;
+        await new Promise((res) => setTimeout(res, delay));
       }
-    } catch (err) {
-      console.warn(`[Bedrock Adapter] Cloud call failed or unconfigured, falling back to local cognitive mock:`, err);
-      throw err;
     }
   }
 
+  private async invokeModelJSON<T>(systemPrompt: string, userMessage: string): Promise<T> {
+    return this.invokeWithRetry(async () => {
+      try {
+        if (this.modelId.includes("claude")) {
+          const payload = {
+            anthropic_version: "bedrock-2023-05-31",
+            max_tokens: 1500,
+            temperature: 0.2,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userMessage }],
+          };
+
+          const command = new InvokeModelCommand({
+            modelId: this.modelId,
+            contentType: "application/json",
+            accept: "application/json",
+            body: JSON.stringify(payload),
+          });
+
+          const response = await this.client.send(command);
+          const decoded = new TextDecoder().decode(response.body);
+          const parsed = JSON.parse(decoded);
+          const text = parsed.content?.[0]?.text || "{}";
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          return JSON.parse(jsonMatch ? jsonMatch[0] : text) as T;
+        } else {
+          // Amazon Nova JSON payload format
+          const payload = {
+            messages: [
+              { role: "system", content: [{ text: systemPrompt }] },
+              { role: "user", content: [{ text: userMessage }] },
+            ],
+            inferenceConfig: {
+              temperature: 0.2,
+              max_new_tokens: 1500,
+            },
+          };
+
+          const command = new InvokeModelCommand({
+            modelId: this.modelId,
+            contentType: "application/json",
+            accept: "application/json",
+            body: JSON.stringify(payload),
+          });
+
+          const response = await this.client.send(command);
+          const decoded = new TextDecoder().decode(response.body);
+          const parsed = JSON.parse(decoded);
+          const text = parsed.output?.message?.content?.[0]?.text || "{}";
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          return JSON.parse(jsonMatch ? jsonMatch[0] : text) as T;
+        }
+      } catch (err) {
+        console.warn(`[Bedrock Adapter] Cloud call attempt failed:`, err);
+        throw err;
+      }
+    });
+  }
+
   async analyzeStance(statement: string): Promise<StanceAnalysis> {
-    const gate = classifyInput(statement);
+    const cleanStatement = sanitizeAndNormalizeInput(statement);
+    const cacheKey = `stance:${cleanStatement.toLowerCase()}`;
+    const cached = stanceCache.get(cacheKey);
+    if (cached) return cached;
+
+    const gate = classifyInput(cleanStatement);
     if (!gate.is_stance) {
-      return this.fallback.analyzeStance(statement);
+      return this.fallback.analyzeStance(cleanStatement);
     }
 
     try {
@@ -886,7 +1049,7 @@ Analyze the user's opinion statement. Return pure JSON with this exact schema:
   "calibrationNotes": string,
   "say": string (MANDATORY: Voice-ready summary <= 40 words)
 }`;
-      const res = await this.invokeModelJSON<StanceAnalysis>(systemPrompt, statement);
+      const res = await this.invokeModelJSON<StanceAnalysis>(systemPrompt, cleanStatement);
       res.is_stance = true;
       res.category = "STANCE";
       if (!res.blind_spots) res.blind_spots = res.blindSpots || [];
@@ -894,17 +1057,23 @@ Analyze the user's opinion statement. Return pure JSON with this exact schema:
       if (res.conviction_certainty === undefined) res.conviction_certainty = Math.round((res.confidence || 0.8) * 100);
       if (res.emotional_charge === undefined) res.emotional_charge = Math.round((res.emotionalCharge || 0.5) * 100);
       if (!res.topic_label) res.topic_label = res.detectedTopic;
-      if (!res.say) res.say = `Detected high conviction on ${res.detectedTopic}. I have identified three crucial blind spots in this position.`;
+      res.say = enforceVoiceBrevity(res.say || `Detected high conviction on ${res.detectedTopic}. I have identified three crucial blind spots in this position.`);
+      stanceCache.set(cacheKey, res);
       return res;
     } catch {
-      return this.fallback.analyzeStance(statement);
+      return this.fallback.analyzeStance(cleanStatement);
     }
   }
 
   async generateSteelman(statement: string, stance?: StanceAnalysis): Promise<SteelmanResponse> {
-    const analysis = stance || (await this.analyzeStance(statement));
+    const cleanStatement = sanitizeAndNormalizeInput(statement);
+    const cacheKey = `steelman:${cleanStatement.toLowerCase()}`;
+    const cached = steelmanCache.get(cacheKey);
+    if (cached) return cached;
+
+    const analysis = stance || (await this.analyzeStance(cleanStatement));
     if (!analysis.is_stance) {
-      return this.fallback.generateSteelman(statement, analysis);
+      return this.fallback.generateSteelman(cleanStatement, analysis);
     }
 
     try {
@@ -926,13 +1095,10 @@ Return pure JSON matching:
   "concessionPoints": string[],
   "epistemicQuestion": string
 }`;
-      const userMsg = `Original statement: "${statement}". ${stance ? `Stance analysis: ${JSON.stringify(stance)}` : ""}`;
+      const userMsg = `Original statement: "${cleanStatement}". ${stance ? `Stance analysis: ${JSON.stringify(stance)}` : ""}`;
       const res = await this.invokeModelJSON<SteelmanResponse>(systemPrompt, userMsg);
       // Guarantee voice brevity constraint (<= 40 words)
-      const words = res.say.trim().split(/\s+/);
-      if (words.length > 40) {
-        res.say = words.slice(0, 38).join(" ") + "...";
-      }
+      res.say = enforceVoiceBrevity(res.say);
       res.is_stance = true;
       res.foundational_counter_thesis = res.opposingThesis;
       res.core_structural_premises = (res.coreArguments || []).map((a) => a.premise);
@@ -942,16 +1108,17 @@ Return pure JSON matching:
       res.challenge_id = chalId;
       if (!res.reasoning_chain) {
         res.reasoning_chain = {
-          axiomaticDecomposition: `Axiomatic Basis: The statement presumes that observed issues with "${statement.slice(0, 45)}..." provide sufficient epistemic grounds for an absolute rejection without evaluating countervailing systemic utilities.`,
+          axiomaticDecomposition: `Axiomatic Basis: The statement presumes that observed issues with "${cleanStatement.slice(0, 45)}..." provide sufficient epistemic grounds for an absolute rejection without evaluating countervailing systemic utilities.`,
           charitableReconstruction: `Dennett-Rapoport Steelman: You are highlighting legitimate operational failure modes, real human burdens, and valid governance friction that institutional consensus tends to overlook.`,
           systemicMechanism: res.coreArguments?.[0]?.evidenceOrMechanism || "Interdependent adaptive mechanisms sustain systemic stability under acute external shocks.",
           popperianFalsificationCriterion: `Popperian Falsification: This counter-argument would be falsified if a controlled alternative successfully eliminated these pathologies without introducing worse asymmetric failure modes.`,
           epistemicDilemma: `Epistemic Tension: The unavoidable trade-off between maximizing short-term local control versus maintaining global resilience against severe tail-risk events.`,
         };
       }
+      steelmanCache.set(cacheKey, res);
       return res;
     } catch {
-      return this.fallback.generateSteelman(statement, stance);
+      return this.fallback.generateSteelman(cleanStatement, stance);
     }
   }
 
@@ -1017,3 +1184,4 @@ export function createCognitiveAdapter(): CognitiveAdapter {
 }
 
 export const cognitiveAdapter = createCognitiveAdapter();
+export const bedrockCognitiveAdapter = cognitiveAdapter;

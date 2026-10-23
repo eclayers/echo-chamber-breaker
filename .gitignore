@@ -5,3 +5,4 @@ data/
 *.log
 *.exe
 .DS_Store
+*.backup*

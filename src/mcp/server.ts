@@ -63,25 +63,22 @@ export class McpProtocolRouter {
   }
 
   /**
-   * Direct stateless HTTP POST handler for JSON-RPC 2.0 requests.
-   * Allows standard curl, web clients, and test harnesses to call MCP tools synchronously.
+   * Internal executor for a single JSON-RPC 2.0 request.
    */
-  async handleDirectJsonRpc(req: Request, res: Response): Promise<void> {
-    const body = req.body;
+  private async executeSingleRpc(body: any): Promise<any> {
     if (!body || typeof body !== "object") {
-      res.status(400).json({
+      return {
         jsonrpc: "2.0",
         id: null,
-        error: { code: -32700, message: "Parse error: Invalid JSON object" },
-      });
-      return;
+        error: { code: -32600, message: "Invalid Request: Expected object" },
+      };
     }
 
     const { id, method, params } = body;
 
     try {
       if (method === "initialize") {
-        res.json({
+        return {
           jsonrpc: "2.0",
           id: id ?? 1,
           result: {
@@ -94,18 +91,15 @@ export class McpProtocolRouter {
               version: "1.0.0",
             },
           },
-        });
-        return;
+        };
       }
 
       if (method === "notifications/initialized") {
-        res.status(204).end();
-        return;
+        return null;
       }
 
       if (method === "ping") {
-        res.json({ jsonrpc: "2.0", id: id ?? 1, result: {} });
-        return;
+        return { jsonrpc: "2.0", id: id ?? 1, result: {} };
       }
 
       const server = this.mcpServer;
@@ -115,7 +109,6 @@ export class McpProtocolRouter {
         const toolsList = Object.entries(registeredTools)
           .filter(([, tool]: [string, any]) => tool.enabled !== false)
           .map(([name, tool]: [string, any]) => {
-            // Extract shape if zod schema
             const properties: Record<string, any> = {};
             const required: string[] = [];
 
@@ -142,14 +135,13 @@ export class McpProtocolRouter {
             };
           });
 
-        res.json({
+        return {
           jsonrpc: "2.0",
           id: id ?? 1,
           result: {
             tools: toolsList,
           },
-        });
-        return;
+        };
       }
 
       if (method === "tools/call") {
@@ -158,46 +150,90 @@ export class McpProtocolRouter {
 
         const tool = registeredTools[toolName];
         if (!tool) {
-          res.status(404).json({
+          return {
             jsonrpc: "2.0",
             id: id ?? 1,
             error: {
               code: -32601,
               message: `Tool '${toolName}' not found`,
             },
-          });
-          return;
+          };
         }
 
         const parsedArgs = tool.inputSchema?.parse ? tool.inputSchema.parse(toolArgs) : toolArgs;
         const toolResult = await tool.handler(parsedArgs);
-        res.json({
+        return {
           jsonrpc: "2.0",
           id: id ?? 1,
           result: toolResult,
-        });
-        return;
+        };
       }
 
-      res.status(404).json({
+      return {
         jsonrpc: "2.0",
         id: id ?? 1,
         error: {
           code: -32601,
           message: `Method '${method}' not supported`,
         },
-      });
+      };
     } catch (err: any) {
       console.error("[MCP Router Error]", err);
-      res.status(500).json({
+      return {
         jsonrpc: "2.0",
         id: id ?? 1,
         error: {
           code: -32603,
           message: err?.message || "Internal error executing tool",
         },
-      });
+      };
     }
+  }
+
+  /**
+   * Direct stateless HTTP POST handler for JSON-RPC 2.0 requests.
+   * Supports both single and batch requests.
+   */
+  async handleDirectJsonRpc(req: Request, res: Response): Promise<void> {
+    const body = req.body;
+    if (!body || (typeof body !== "object" && !Array.isArray(body))) {
+      res.status(400).json({
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32700, message: "Parse error: Invalid JSON object" },
+      });
+      return;
+    }
+
+    if (Array.isArray(body)) {
+      if (body.length === 0) {
+        res.status(400).json({
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32600, message: "Invalid Request: Batch request cannot be empty" },
+        });
+        return;
+      }
+      const results = (await Promise.all(body.map((item) => this.executeSingleRpc(item)))).filter(Boolean);
+      res.json(results);
+      return;
+    }
+
+    const response = await this.executeSingleRpc(body);
+    if (!response) {
+      res.status(204).end();
+      return;
+    }
+
+    const statusCode = response.error ? (response.error.code === -32601 ? 404 : 500) : 200;
+    if (statusCode !== 200 && typeof res.status === "function") {
+      const chained = res.status(statusCode);
+      if (chained && typeof (chained as any).json === "function") {
+        (chained as any).json(response);
+        return;
+      }
+    }
+    res.json(response);
   }
 }
 
